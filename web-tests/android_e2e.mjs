@@ -3,7 +3,8 @@
 // Verifies the native SQLite bridge: create data, restart the app, airplane
 // mode, invoice/payment math, and that data survives a force-stop.
 // Run in CI after `adb install`. Writes screenshots to web-tests/android-shots/.
-import { _android as android } from 'playwright';
+import { _android as android, chromium } from 'playwright';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
 const PKG = 'com.pehlwania.doormax';
@@ -20,6 +21,9 @@ console.log('device', device.model(), device.serial());
 const sh = async c => (await device.shell(c)).toString().trim();
 
 const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout: ${what}`)), ms))]);
+let cdpPort = 9300, browser = null;
+/** Start the app (if needed) and attach to its WebView through Chrome DevTools,
+ *  using a fresh port for each process so a killed process is never reused. */
 async function launch() {
   console.log('launching', new Date().toISOString());
   await sh(`am start -W -n ${ACT}`);
@@ -27,15 +31,18 @@ async function launch() {
     try {
       const pid = Number(await sh(`pidof ${PKG}`));
       if (!pid) throw new Error('app process not running yet');
-      // attach to the WebView of the CURRENT process (an old one may still be listed after a restart)
-      let wv = device.webViews().find(w => w.pid() === pid);
-      if (!wv) wv = await device.webView({ pkg: PKG }, { timeout: 5000 });
-      if (wv.pid() !== pid) throw new Error(`stale WebView pid ${wv.pid()} != ${pid}`);
-      const page = await withTimeout(wv.page(), 20000, 'attach to WebView page');
+      const sock = `webview_devtools_remote_${pid}`;
+      if (!(await sh('cat /proc/net/unix')).includes(sock)) throw new Error('WebView DevTools socket not open yet');
+      if (browser) { try { await withTimeout(browser.close(), 5000, 'close old CDP'); } catch (e) {} browser = null; }
+      const port = ++cdpPort;
+      execSync(`adb forward tcp:${port} localabstract:${sock}`);
+      browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: 15000 });
+      const ctx = browser.contexts()[0];
+      const page = ctx.pages().find(p => p.url().includes('index.html')) || await ctx.waitForEvent('page', { timeout: 15000 });
       await page.waitForFunction(() => typeof State !== 'undefined' && State.users && State.users.length > 0, null, { timeout: 60000 });
-      console.log('WebView ready (pid', pid + ')');
+      console.log(`WebView ready (pid ${pid}, port ${port})`);
       return page;
-    } catch (e) { console.log('waiting for WebView:', String(e).split('\n')[0]); await sleep(1500); }
+    } catch (e) { console.log('waiting for WebView:', String(e).split('\n')[0]); await sleep(2000); }
   }
   throw new Error('WebView did not become ready');
 }
@@ -89,6 +96,50 @@ page = await launch(); await login(page);
 check('offline changes survive restart', (await page.evaluate(() => State.expenses.length)) === 2);
 await sh('cmd connectivity airplane-mode disable');
 
+// ---- PDF bill: print preview opens (Android print framework) ----
+const invId = await page.evaluate(() => State.documents.find(x => x.customerName === 'Emulator Customer').id);
+await page.evaluate(id => Print.doc(id), invId);
+await sleep(6000); await shot('08-print-preview');
+const printUi = await sh('dumpsys activity activities | grep -i -c printspooler || true');
+check('PDF bill generated and Android print preview opened', Number(printUi) > 0, `printspooler activities=${printUi}`);
+await sh('input keyevent 4'); await sleep(2000);
+if (Number(await sh('dumpsys activity activities | grep -i -c printspooler || true')) > 0) { await sh('input keyevent 4'); await sleep(1500); }
+
+// ---- backup to a file through Android's Save screen, then full restore ----
+const tapAny = async (sels, timeout = 6000) => { for (const sel of sels) { try { await device.tap(sel, { timeout }); return true; } catch (e) {} } return false; };
+await page.evaluate(() => Nav.go('sync')); await sleep(800);
+const before = (await page.evaluate(async () => PDMNative.call('backup.status'))).lastSuccessAt || null;
+page.evaluate(() => Backup.export()).catch(() => {});
+await sleep(5000); await shot('09-android-save-screen');
+const saved = await tapAny([{ text: /^save$/i }, { res: 'android:id/button1' }]);
+await sleep(4000);
+const bst = await page.evaluate(async () => PDMNative.call('backup.status'));
+check('backup saved via Android file picker and verified (status updated)', saved && bst.lastResult === 'success' && bst.lastSuccessAt && bst.lastSuccessAt !== before,
+  JSON.stringify({ saved, result: bst.lastResult, file: bst.fileName, size: bst.sizeBytes, records: bst.records }));
+const downloads = await sh('ls /sdcard/Download/ 2>/dev/null');
+check('backup file exists on the phone storage', bst.fileName && downloads.includes(bst.fileName), downloads.split('\n').slice(-3).join(', '));
+await page.evaluate(async () => { const d = State.documents.find(x => x.customerName === 'Emulator Customer'); await DB.del('documents', d.id); await loadAll(); });
+check('invoice deleted after backup (to prove restore brings it back)', (await page.evaluate(() => State.documents.length)) === 0);
+page.evaluate(() => Backup.pick()).catch(() => {});
+await sleep(5000); await shot('10-android-open-screen');
+let picked = await tapAny([{ text: bst.fileName }], 8000);
+if (!picked) { await tapAny([{ desc: /show roots/i }], 3000); await sleep(1200); await tapAny([{ text: /^downloads$/i }], 3000); await sleep(1500); picked = await tapAny([{ text: bst.fileName }], 6000); }
+check('backup file chosen in Android file picker', picked);
+let restored = null;
+if (picked) {
+  await page.waitForSelector('#rs_ok', { timeout: 30000 }); await shot('11-restore-preview');
+  check('restore preview shows the backup contents before changing anything', /Records in backup/.test(await page.textContent('#modal')));
+  await page.check('#rs_ok');
+  page.click('#rs_go').catch(() => {});
+  await sleep(8000); await shot('12-restore-complete');
+  await tapAny([{ text: /^ok$/i }], 15000);
+  await sleep(3000);
+  try { page = await launch(); } catch (e) { console.log('relaunch after restore', String(e)); }
+  await login(page);
+  restored = await page.evaluate(() => { const d = State.documents.find(x => x.customerName === 'Emulator Customer'); return d ? { pays: d.payments.length, bal: docTotals(d).balance } : null; });
+}
+check('full restore on device brings the invoice and both payments back', restored && restored.pays === 2 && restored.bal === 10000, JSON.stringify(restored));
+
 // ---- every screen renders on the phone ----
 const errs = []; page.on('pageerror', e => errs.push(String(e)));
 for (const v of await page.evaluate(() => MODULES.map(m => m.k))) { await page.evaluate(x => Nav.go(x), v); await sleep(250); }
@@ -103,5 +154,6 @@ check('no app crash in logcat', !crash.includes(PKG), crash.slice(0, 300));
 
 fs.writeFileSync(path.join(here, 'android-results.json'), JSON.stringify({ at: new Date().toISOString(), device: device.model(), passed: results.length - failed, failed, results }, null, 2));
 console.log(`\n${results.length - failed}/${results.length} passed`);
+try { if (browser) await browser.close(); } catch (e) {}
 await device.close();
 process.exit(failed ? 1 : 0);

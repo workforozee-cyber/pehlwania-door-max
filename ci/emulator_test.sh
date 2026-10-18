@@ -9,7 +9,8 @@ adb logcat -c || true
 echo "== 1. CI test build (WebView debugging enabled) =="
 date; adb devices; adb shell getprop ro.build.version.release
 adb install -r ci-apk/app-debug.apk || { echo "FAIL install of CI test APK"; }
-(cd web-tests && DEBUG=pw:api timeout 900 node android_e2e.mjs 2>&1 | grep -v "pw:api.*=>" | tail -400); E2E=${PIPESTATUS[0]}
+(cd web-tests && timeout 1500 node android_e2e.mjs > ../e2e-output.log 2>&1); E2E=$?
+cat e2e-output.log | tail -300
 echo "android_e2e exit=$E2E"; date
 adb logcat -d -t 400 > emulator-logcat-e2e.txt
 

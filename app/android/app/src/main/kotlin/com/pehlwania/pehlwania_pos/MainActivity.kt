@@ -32,11 +32,13 @@ class MainActivity : FlutterFragmentActivity() {
         val r = pending
         pending = null
         if (r == null) return@registerForActivityResult
-        if (res.resultCode != Activity.RESULT_OK) {
-            r.error("CANCELED", "Google sign-in was cancelled", null)
-            return@registerForActivityResult
-        }
         try {
+            if (res.resultCode != Activity.RESULT_OK) {
+                // the intent may carry the real reason (e.g. DEVELOPER_ERROR = not set up in Google Cloud)
+                if (res.data != null) Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(res.data)
+                r.error("CANCELED", "Google sign-in was cancelled", null)
+                return@registerForActivityResult
+            }
             val auth = Identity.getAuthorizationClient(this).getAuthorizationResultFromIntent(res.data)
             val token = auth.accessToken
             if (token.isNullOrEmpty()) r.error("AUTH_ERROR", "No access token returned", null)

@@ -213,7 +213,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           mkdir -p ci-out/emulator
-          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-logcat-e2e.txt emulator-run.log ci-out/emulator/ 2>/dev/null || true
+          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-logcat-e2e.txt emulator-run.log e2e-output.log ci-out/emulator/ 2>/dev/null || true
           bash ci/publish_report.sh emulator
       - uses: actions/upload-artifact@v4
         if: always()
