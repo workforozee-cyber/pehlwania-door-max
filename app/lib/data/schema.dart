@@ -26,7 +26,8 @@ final Map<int, List<String>> kMigrations = {
       updated_at INTEGER)''',
     '''CREATE TABLE counters(
       id TEXT PRIMARY KEY NOT NULL,
-      n INTEGER NOT NULL DEFAULT 0 CHECK(n >= 0))''',
+      n INTEGER NOT NULL DEFAULT 0 CHECK(n >= 0),
+      extra TEXT)''',
     '''CREATE TABLE users(
       id TEXT PRIMARY KEY NOT NULL,
       username TEXT NOT NULL COLLATE NOCASE UNIQUE,

@@ -80,11 +80,9 @@ class Bridge {
       case 'backup.export':
         return _exportBackup();
       case 'backup.pick':
-        final res = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
-        if (res == null || res.files.isEmpty) return {'cancelled': true};
-        final f = res.files.single;
-        final bytes = f.bytes ?? (f.path != null ? await File(f.path!).readAsBytes() : null);
-        if (bytes == null) throw StateError('Could not read the selected file');
+        final f = await FilePicker.pickFile(type: FileType.any);
+        if (f == null) return {'cancelled': true};
+        final bytes = await f.readAsBytes();
         return _inspect(utf8.decode(bytes, allowMalformed: true));
       case 'backup.restore':
         final v = _pendingRestores.remove(a['token']);
@@ -175,13 +173,13 @@ class Bridge {
       if (!v.ok) throw StateError('Backup verification failed: ${v.errors.first}');
       final bytes = Uint8List.fromList(utf8.encode(text));
       final name = BackupService.fileNameNow();
-      final path = await FilePicker.platform.saveFile(
+      final uri = await FilePicker.saveFile(
         dialogTitle: 'Save backup file',
         fileName: name,
         bytes: bytes,
-        type: FileType.any,
       );
-      if (path == null) return {'cancelled': true}; // previous successful status is kept
+      if (uri == null) return {'cancelled': true}; // previous successful status is kept
+      final path = uri.scheme == 'file' ? uri.toFilePath() : uri.toString();
       var readBack = false;
       try {
         final f = File(path);

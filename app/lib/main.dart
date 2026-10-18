@@ -98,7 +98,7 @@ class _DatabaseErrorScreen extends StatelessWidget {
     try {
       final path = p.join(await getDatabasesPath(), AppDatabase.fileName);
       final bytes = await File(path).readAsBytes();
-      final out = await FilePicker.platform.saveFile(
+      final out = await FilePicker.saveFile(
           dialogTitle: 'Save database copy', fileName: 'pehlwania_pos-database-copy.db', bytes: bytes);
       if (out != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Database copy saved')));
@@ -211,9 +211,12 @@ class _PosScreenState extends State<PosScreen> {
       await platform.setAllowFileAccess(true);
       // "Add Photo" in the Showcase: <input type=file accept=image/*>
       await platform.setOnShowFileSelector((params) async {
-        final res = await FilePicker.platform.pickFiles(type: FileType.image);
-        final path = res?.files.single.path;
-        return path == null ? <String>[] : [Uri.file(path).toString()];
+        final f = await FilePicker.pickFile(type: FileType.image);
+        if (f == null) return <String>[];
+        // hand the WebView a readable copy of the image
+        final tmp = File('${(await getTemporaryDirectory()).path}/pick-${DateTime.now().millisecondsSinceEpoch}.img');
+        await tmp.writeAsBytes(await f.readAsBytes(), flush: true);
+        return [Uri.file(tmp.path).toString()];
       });
     }
     await _web.loadFlutterAsset('assets/www/index.html');

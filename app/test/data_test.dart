@@ -147,7 +147,7 @@ void main() {
       await repo.applyBatch([StoreOp.put('documents', d)]);
       final back = (await repo.get('documents', 'd1'))!;
       final ids = [...(back['items'] as List).map((i) => i['id']), (back['payments'] as List).first['id']];
-      expect(ids.every((i) => i is String && (i as String).length == 36), isTrue);
+      expect(ids.every((i) => i is String && i.length == 36), isTrue);
       await repo.applyBatch([StoreOp.put('documents', back)]); // saving again keeps the same rows
       expect((await repo.db.query('document_items')).length, 2);
     });
