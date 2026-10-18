@@ -180,7 +180,10 @@ if (picked) {
   check('restore preview shows the backup contents before changing anything', await ev(() => /Records in backup/.test(document.querySelector('#modal').textContent)));
   evNoWait(() => { document.querySelector('#rs_ok').checked = true; document.querySelector('#rs_go').click(); });
   await sleep(8000); shot('09-restore-complete');
-  await uiTap(n => /^ok$/i.test(n.text), 30000); // "Restore complete and verified" dialog
+  // "Restore complete and verified" dialog (Flutter exposes its button as content-desc)
+  const okTapped = await uiTap(n => /^ok$/i.test(n.text) || /^ok$/i.test(n.desc), 30000);
+  if (!okTapped) sh('input keyevent 4'); // Back also closes the dialog
+  console.log('restore dialog closed via', okTapped ? 'OK button' : 'Back key');
   await sleep(4000);
   await launch(); await login();
   restored = await ev(() => { const d = State.documents.find(x => x.customerName === 'Emulator Customer'); return d ? { pays: d.payments.length, bal: docTotals(d).balance, exp: State.expenses.length } : null; });
