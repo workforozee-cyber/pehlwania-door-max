@@ -2,7 +2,6 @@
 // "PDMBridge" channel; we reply with PDMNative._resolve(id, ok, payload).
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
