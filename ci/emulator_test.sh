@@ -21,6 +21,12 @@ adb install "$REL"; INST=$?
 adb shell am start -W -n "$PKG/com.pehlwania.pehlwania_pos.MainActivity"
 sleep 20
 PID=$(adb shell pidof "$PKG" | tr -d '\r')
+if [ -z "$PID" ]; then
+  # the emulator sometimes kills apps when Google Play services restarts; launch once more
+  adb logcat -d | grep -i "Killing.*$PKG" | tail -2
+  adb shell am start -W -n "$PKG/com.pehlwania.pehlwania_pos.MainActivity"; sleep 20
+  PID=$(adb shell pidof "$PKG" | tr -d '\r')
+fi
 mkdir -p web-tests/android-shots
 adb exec-out screencap -p > web-tests/android-shots/10-release-apk-running.png
 adb logcat -d > emulator-logcat.txt
