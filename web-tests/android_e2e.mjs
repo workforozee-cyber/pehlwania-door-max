@@ -136,14 +136,15 @@ await ev(async () => { Views.editExpense(); document.querySelector('#ex_amt').va
 check('records are read back from native SQLite through the bridge', (await ev(async () => (await PDMNative.call('db.getAll', { store: 'documents' })).length)) === 1);
 
 // ---- offline ----
-sh('cmd connectivity airplane-mode enable'); await sleep(3000);
+sh('cmd connectivity airplane-mode enable'); sh('svc wifi disable'); sh('svc data disable');
+for (let i = 0; i < 20 && (await ev(() => PDMNative.call('sync.status'))).online; i++) await sleep(1000);
 await ev(async () => { Views.editExpense(); document.querySelector('#ex_amt').value = '700'; document.querySelector('#ex_cat').value = 'Chaye / Khana'; await Views.saveExpense(''); });
 check('saving works in airplane mode', (await ev(() => State.expenses.length)) === 2);
 const st = await ev(() => PDMNative.call('sync.status'));
 check('sync status: offline, Google not connected (no Google setup in CI)', st.online === false && (st.state === 'not_connected' || st.state === 'not_configured'), JSON.stringify({ online: st.online, state: st.state }));
 check('changes are queued for Google Sheets while offline', st.pending > 0, `pending=${st.pending}`);
 await ev(() => Nav.go('sync')); await sleep(1500); shot('04-backup-sync-offline');
-sh('cmd connectivity airplane-mode disable'); await sleep(2000);
+sh('cmd connectivity airplane-mode disable'); sh('svc wifi enable'); sh('svc data enable'); await sleep(3000);
 
 // ---- PDF bill: Android print preview ----
 evNoWait(id => Print.doc(id), inv.id);
