@@ -3,8 +3,7 @@
 // Verifies the native SQLite bridge: create data, restart the app, airplane
 // mode, invoice/payment math, and that data survives a force-stop.
 // Run in CI after `adb install`. Writes screenshots to web-tests/android-shots/.
-import { _android as android, chromium } from 'playwright';
-import { execSync } from 'node:child_process';
+import { _android as android } from 'playwright';
 import fs from 'node:fs'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 
 const PKG = 'com.pehlwania.doormax';
@@ -15,32 +14,32 @@ const results = []; let failed = 0;
 const check = (name, ok, detail = '') => { results.push({ name, ok: !!ok, detail }); if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-const [device] = await android.devices();
+let [device] = await android.devices();
 if (!device) { console.error('No Android device'); process.exit(2); }
 console.log('device', device.model(), device.serial());
 const sh = async c => (await device.shell(c)).toString().trim();
 
 const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout: ${what}`)), ms))]);
-let cdpPort = 9300, browser = null;
-/** Start the app (if needed) and attach to its WebView through Chrome DevTools,
- *  using a fresh port for each process so a killed process is never reused. */
+let attachedBefore = false;
+/** Start the app (if needed) and attach to its WebView. After a restart a new
+ *  device connection is opened so nothing from the killed process is reused. */
 async function launch() {
   console.log('launching', new Date().toISOString());
+  if (attachedBefore) {
+    try { await withTimeout(device.close(), 10000, 'close device'); } catch (e) { console.log('device.close', String(e)); }
+    [device] = await android.devices();
+  }
   await sh(`am start -W -n ${ACT}`);
   for (let i = 0; i < 40; i++) {
     try {
       const pid = Number(await sh(`pidof ${PKG}`));
       if (!pid) throw new Error('app process not running yet');
-      const sock = `webview_devtools_remote_${pid}`;
-      if (!(await sh('cat /proc/net/unix')).includes(sock)) throw new Error('WebView DevTools socket not open yet');
-      if (browser) { try { await withTimeout(browser.close(), 5000, 'close old CDP'); } catch (e) {} browser = null; }
-      const port = ++cdpPort;
-      execSync(`adb forward tcp:${port} localabstract:${sock}`);
-      browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: 15000 });
-      const ctx = browser.contexts()[0];
-      const page = ctx.pages().find(p => p.url().includes('index.html')) || await ctx.waitForEvent('page', { timeout: 15000 });
+      const wv = await device.webView({ pkg: PKG }, { timeout: 8000 });
+      if (wv.pid() !== pid) throw new Error(`stale WebView pid ${wv.pid()} != ${pid}`);
+      const page = await withTimeout(wv.page(), 20000, 'attach to WebView page');
+      attachedBefore = true;
       await page.waitForFunction(() => typeof State !== 'undefined' && State.users && State.users.length > 0, null, { timeout: 60000 });
-      console.log(`WebView ready (pid ${pid}, port ${port})`);
+      console.log(`WebView ready (pid ${pid})`);
       return page;
     } catch (e) { console.log('waiting for WebView:', String(e).split('\n')[0]); await sleep(2000); }
   }
@@ -154,6 +153,5 @@ check('no app crash in logcat', !crash.includes(PKG), crash.slice(0, 300));
 
 fs.writeFileSync(path.join(here, 'android-results.json'), JSON.stringify({ at: new Date().toISOString(), device: device.model(), passed: results.length - failed, failed, results }, null, 2));
 console.log(`\n${results.length - failed}/${results.length} passed`);
-try { if (browser) await browser.close(); } catch (e) {}
 await device.close();
 process.exit(failed ? 1 : 0);
