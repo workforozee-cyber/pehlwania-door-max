@@ -110,7 +110,12 @@ working from the same source.
 See [TEST_REPORT.md](TEST_REPORT.md) for the table with commands and evidence.
 
 ## G. GitHub
-See TEST_REPORT.md (repository URL, branch, commit, CI run, release).
+- Repository: https://github.com/workforozee-cyber/pehlwania-door-max (private) · branch `main`
+- Push status: pushed; history preserved (no force-push to `main`). The first commit is the original v2 app unchanged.
+- CI: GitHub Actions `ci.yml`, three jobs (desktop tests, Android build/tests, emulator). Final build 17 (commit 23fe355):
+  analyze clean, 33/33 unit, 37/37 desktop, 23/23 emulator, release APK install + launch passed.
+- Releases: `build-17` = release-signed v3.0.0 APK (also `build-14`, `build-16`) (earlier `build-N` pre-releases are debug-signed test builds).
+- `ci-reports/*` branches contain only CI output (logs, screenshots, APK) and are replaced on every run.
 
 ## H. Outstanding configuration
 1. **GitHub secrets** `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` (from the key files

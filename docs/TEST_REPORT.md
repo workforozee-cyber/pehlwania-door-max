@@ -20,17 +20,19 @@ Results, logs, screenshots and the APK of the latest run are on the `ci-reports/
 ## APK
 | | |
 |---|---|
-| File | `PehlwaniaPOS-v3.0.0-release.apk` (59,018,398 bytes, universal: arm64-v8a, armeabi-v7a, x86_64) |
-| SHA-256 | `40db55bc24b0e9e5074839671b85ddcaf869520c35658c596c487efe60eb0f9a` (CI build 14) |
+| File | `PehlwaniaPOS-v3.0.0-release.apk` (≈59.0 MB, universal: arm64-v8a, armeabi-v7a, x86_64) |
+| SHA-256 | `089a658ff774e8065f6a65cd79ee1bc2121d351468787f01d52297a5930bbb8c` (CI build 17, commit 23fe355) |
 | Package / version | `com.pehlwania.doormax` · versionName 3.0.0 · versionCode 3 |
 | SDK | minSdk 24 (Android 7.0) · targetSdk 36 · compileSdk 36 |
 | Signing | **Release key** CN=Pehlwania Door Max · SHA-1 `1A:7E:25:F7:0A:81:55:F6:DD:A2:0B:D0:A5:1D:9A:59:74:E2:28:0E` (APK Signature Scheme v2) |
 | Download | GitHub → Releases → latest `build-N` marked "(release)" |
 
 ## Emulator (real APK, Android 14) — checks
-Run 14 result: 22 of 23 passed. The failed check was the offline status: the emulator's virtual Wi-Fi stayed on in airplane mode,
-so the phone really was online (test setup issue; saving offline itself passed). The test now also turns Wi-Fi/data off;
-see the latest `ci-reports/emulator/e2e-output.log` for the current run.
+Build 17 (final): **23/23 passed**, and the release APK installs, launches and keeps running. Build 16 was also 23/23. Earlier run 14 failed only the offline-status check
+because the emulator's virtual Wi-Fi stayed on in airplane mode; the test now also turns Wi-Fi/data off.
+In build 16 the separate release-APK launch check found the app killed by Android because Google Play services
+restarted on the emulator ("depends on provider … in dying proc com.google.android.gms.persistent"); the same check
+passed in builds 7, 11 and 14, and CI now relaunches once in that case.
 
 - app starts in native SQLite mode · invoice saved once on double tap · 36×84 in ×2 @500 = 21,000 · bridge reads back from SQLite
 - saving in airplane mode · changes queued for Sheets while offline
