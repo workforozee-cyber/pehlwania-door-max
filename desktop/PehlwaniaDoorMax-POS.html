@@ -590,8 +590,8 @@ const Auth=(()=>{
     const admin=State.users.find(u=>u.username==='admin');
     $('#lg_hint').innerHTML = State.users.length && admin && admin.pass===hashPass('admin') ? 'First time? Username <b>admin</b> · Password <b>admin</b>' : '';
     document.body.classList.remove('authed');
-    $('#lg_user').value='';$('#lg_pass').value='';$('#lg_err').textContent='';
-    setTimeout(()=>$('#lg_user').focus(),100);
+    $('#lg_err').textContent=''; /* keep anything already typed during start-up */
+    setTimeout(()=>{if(!$('#lg_user').value)$('#lg_user').focus();},100);
   }
   function login(){
     const u=$('#lg_user').value.trim().toLowerCase(), p=$('#lg_pass').value;

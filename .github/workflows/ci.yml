@@ -52,6 +52,7 @@ jobs:
   android:
     name: Flutter analyze, unit tests, build APKs
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     outputs:
       signed: ${{ steps.sign.outputs.signed }}
     steps:
@@ -124,7 +125,7 @@ jobs:
           BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
           SIZE=$(stat -c %s "$APK")
           SHA=$(sha256sum "$APK" | cut -d' ' -f1)
-          "$BT/aapt2" dump badging "$APK" | grep -E "^package:|sdkVersion|targetSdkVersion|application-label:" | tee badging.txt
+          "$BT/aapt2" dump badging "$APK" | grep -iE "^package:|sdkVersion|application-label:" | tee badging.txt
           "$BT/apksigner" verify --print-certs "$APK" | tee signature.txt
           if [ "${{ steps.sign.outputs.signed }}" = "true" ]; then KIND=release; else KIND=debug-signed; fi
           VERSION=$(grep -o "versionName='[^']*'" badging.txt | cut -d"'" -f2)
@@ -178,6 +179,7 @@ jobs:
     name: Install & run on Android emulator
     needs: android
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -211,7 +213,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           mkdir -p ci-out/emulator
-          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-run.log ci-out/emulator/ 2>/dev/null || true
+          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-logcat-e2e.txt emulator-run.log ci-out/emulator/ 2>/dev/null || true
           bash ci/publish_report.sh emulator
       - uses: actions/upload-artifact@v4
         if: always()

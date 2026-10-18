@@ -7,8 +7,11 @@ adb shell settings put global window_animation_scale 0 || true
 adb logcat -c || true
 
 echo "== 1. CI test build (WebView debugging enabled) =="
-adb install -r ci-apk/app-debug.apk
-(cd web-tests && node android_e2e.mjs); E2E=$?
+date; adb devices; adb shell getprop ro.build.version.release
+adb install -r ci-apk/app-debug.apk || { echo "FAIL install of CI test APK"; }
+(cd web-tests && DEBUG=pw:api timeout 900 node android_e2e.mjs 2>&1 | grep -v "pw:api.*=>" | tail -400); E2E=${PIPESTATUS[0]}
+echo "android_e2e exit=$E2E"; date
+adb logcat -d -t 400 > emulator-logcat-e2e.txt
 
 echo "== 2. Shop release APK: install, launch, check it stays up =="
 adb uninstall "$PKG" || true          # different signing key than the CI test build

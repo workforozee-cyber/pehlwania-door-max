@@ -20,20 +20,25 @@ console.log('device', device.model(), device.serial());
 const sh = async c => (await device.shell(c)).toString().trim();
 
 async function launch() {
+  console.log('launching', new Date().toISOString());
   await sh(`am start -W -n ${ACT}`);
+  console.log('activity started; pid', await sh(`pidof ${PKG}`), 'webview sockets', await sh('cat /proc/net/unix | grep -c devtools_remote || true'));
   for (let i = 0; i < 40; i++) {
     try {
       const wv = await device.webView({ pkg: PKG }, { timeout: 5000 });
       const page = await wv.page();
       await page.waitForFunction(() => typeof State !== 'undefined' && State.users && State.users.length > 0, null, { timeout: 60000 });
       return page;
-    } catch (e) { await sleep(1500); }
+    } catch (e) { console.log('waiting for WebView:', String(e).split('\n')[0]); await sleep(1500); }
   }
   throw new Error('WebView did not become ready');
 }
 async function login(page) {
-  await page.fill('#lg_user', 'admin'); await page.fill('#lg_pass', 'admin'); await page.click('.login-btn');
-  await page.waitForFunction(() => document.body.classList.contains('authed'), null, { timeout: 15000 });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await page.fill('#lg_user', 'admin'); await page.fill('#lg_pass', 'admin'); await page.click('.login-btn');
+    try { await page.waitForFunction(() => document.body.classList.contains('authed'), null, { timeout: 8000 }); return; } catch (e) { await sleep(800); }
+  }
+  throw new Error('login failed');
 }
 async function shot(name) { const b = await device.screenshot(); fs.writeFileSync(path.join(shots, name + '.png'), b); }
 

@@ -22,9 +22,13 @@ const errors = []; page.on('pageerror', e => errors.push(String(e))); page.on('d
 
 async function login() {
   await page.waitForSelector('#lg_user', { state: 'visible' });
-  await page.waitForFunction(() => typeof State !== 'undefined' && State.users && State.users.length > 0, null, { timeout: 20000 });
-  await page.fill('#lg_user', 'admin'); await page.fill('#lg_pass', 'admin'); await page.click('.login-btn');
-  await page.waitForFunction(() => document.body.classList.contains('authed'), null, { timeout: 8000 });
+  await page.waitForFunction(() => typeof State !== 'undefined' && State.users && State.users.length > 0, null, { timeout: 30000 });
+  // the login form is cleared once at the end of start-up: retry if our typing was wiped
+  for (let attempt = 0; attempt < 5; attempt++) {
+    await page.fill('#lg_user', 'admin'); await page.fill('#lg_pass', 'admin'); await page.click('.login-btn');
+    try { await page.waitForFunction(() => document.body.classList.contains('authed'), null, { timeout: 6000 }); return; } catch (e) { await page.waitForTimeout(500); }
+  }
+  throw new Error('login failed');
 }
 const ev = (fn, arg) => page.evaluate(fn, arg);
 
