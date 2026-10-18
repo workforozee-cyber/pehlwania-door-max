@@ -40,7 +40,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_STATUS: ${{ job.status }}
-        run: cp web-tests/last-results.json web-tests/last-phone-dashboard.png ci-out/desktop/ 2>/dev/null; bash ci/publish_report.sh desktop
+        run: cp web-tests/last-results.json web-tests/last-phone-dashboard.png ci-out/desktop/ 2>/dev/null || true; bash ci/publish_report.sh desktop
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -68,12 +68,16 @@ jobs:
         working-directory: app
         run: flutter pub get
       - name: Analyze
+        id: analyze
+        continue-on-error: true
         working-directory: app
         run: |
           mkdir -p ../ci-out/android
           set -o pipefail
           flutter analyze --no-fatal-infos 2>&1 | tee ../ci-out/android/analyze.log
       - name: Unit tests (SQLite, financial, backup/restore, Sheets sync)
+        id: tests
+        continue-on-error: true
         working-directory: app
         run: |
           set -o pipefail
@@ -141,7 +145,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_STATUS: ${{ job.status }}
-        run: cp app/test-results.json ci-out/android/ 2>/dev/null; bash ci/publish_report.sh android
+        run: cp app/test-results.json ci-out/android/ 2>/dev/null || true; bash ci/publish_report.sh android
+      - name: Fail if analysis or tests failed
+        if: steps.analyze.outcome == 'failure' || steps.tests.outcome == 'failure'
+        run: |
+          echo "analyze=${{ steps.analyze.outcome }} tests=${{ steps.tests.outcome }}"
+          exit 1
       - name: Publish to GitHub Release (main branch)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -196,7 +205,7 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         run: |
           mkdir -p ci-out/emulator
-          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-run.log ci-out/emulator/ 2>/dev/null
+          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-run.log ci-out/emulator/ 2>/dev/null || true
           bash ci/publish_report.sh emulator
       - uses: actions/upload-artifact@v4
         if: always()
