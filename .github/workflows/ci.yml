@@ -55,6 +55,12 @@ jobs:
     outputs:
       signed: ${{ steps.sign.outputs.signed }}
     steps:
+      - name: Free disk space (unused preinstalled toolchains)
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/local/share/boost /opt/hostedtoolcache/CodeQL /usr/share/swift /usr/local/lib/android/sdk/emulator || true
+          docker image prune -af >/dev/null 2>&1 || true
+          df -h /
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
@@ -108,7 +114,7 @@ jobs:
         working-directory: app
         run: |
           set -o pipefail
-          flutter build apk --debug --dart-define=PDM_WEBVIEW_DEBUG=true 2>&1 | tee ../ci-out/android/build-ci-debug.log
+          flutter build apk --debug --target-platform android-x64 --dart-define=PDM_WEBVIEW_DEBUG=true 2>&1 | tee ../ci-out/android/build-ci-debug.log
       - name: Verify APK (exists, size, package, version, SDKs, signature)
         id: verify
         run: |

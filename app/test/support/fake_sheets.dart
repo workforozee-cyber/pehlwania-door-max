@@ -134,7 +134,7 @@ class FakeSheets {
       }
       if (path == '/drive/v3/files' && req.method == 'GET') {
         final q = url.queryParameters['q'] ?? '';
-        if (q.contains('folder')) return _json({'files': [{'id': 'folder1', 'name': 'Pehlwania POS Backups'}]});
+        if (q.contains('application/vnd.google-apps.folder')) return _json({'files': [{'id': 'folder1', 'name': 'Pehlwania POS Backups'}]});
         return _json({'files': [for (final e in driveFiles.entries) {'id': e.key, 'name': driveNames[e.key], 'size': '${e.value.length}', 'createdTime': '2026-01-01T00:00:00Z'}]});
       }
       if (path.startsWith('/drive/v3/files/')) return http.Response(driveFiles[path.split('/').last] ?? '', 200);

@@ -37,26 +37,25 @@ void main() {
   }
 
   test('changes made offline are kept and synced when internet returns', () async {
+    await connectAndCreate(); // set up while online
     online = false;
-    await repo.applyBatch([StoreOp.put('documents', invoice('d1', customerId: 'c1')), StoreOp.put('expenses', expense('e1', 1500))]);
-    // connect requires network in real life; here we connect, then go offline
-    online = true;
-    await sync.connect();
-    online = false;
+    final r0 = await repo.applyBatch([StoreOp.put('documents', invoice('d1', customerId: 'c1')), StoreOp.put('expenses', expense('e1', 1500))]);
+    expect(r0['ok'], isTrue, reason: 'local save does not need internet');
+    expect(r0['syncConfigured'], isTrue);
+    final before = sheets.requests;
     final r = await sync.syncNow();
     expect(r['message'], contains('Offline'));
-    expect(sheets.requests, greaterThan(0)); // only the connect call
-    final before = sheets.requests;
+    expect(sheets.requests, before, reason: 'no network calls while offline');
     expect(await queued(), greaterThan(0));
+    final lastOk = (await sync.status())['lastSuccessAt'];
     online = true;
-    await sync.createSpreadsheet();
-    expect(sheets.requests, greaterThan(before));
+    await sync.syncNow();
     expect(await queued(), 0);
     expect(sheets.rowsFor('Orders', 'd1'), hasLength(1));
     expect(sheets.rowsFor('Daily Expenses', 'e1'), hasLength(1));
     final st = await sync.status();
-    expect(st['lastSuccessAt'], isNotNull);
     expect(st['state'], 'ok');
+    expect(st['lastSuccessAt'], isNot(lastOk));
   });
 
   test('creates all tabs with the documented headers; rows matched by ID', () async {
