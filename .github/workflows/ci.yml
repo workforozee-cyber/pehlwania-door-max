@@ -31,7 +31,16 @@ jobs:
         run: npm install && npx playwright install --with-deps chromium
       - name: Run desktop end-to-end tests
         working-directory: web-tests
-        run: node desktop_e2e.mjs
+        run: |
+          mkdir -p ../ci-out/desktop
+          set -o pipefail
+          node desktop_e2e.mjs 2>&1 | tee ../ci-out/desktop/desktop-e2e.log
+      - name: Publish CI report branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+        run: cp web-tests/last-results.json web-tests/last-phone-dashboard.png ci-out/desktop/ 2>/dev/null; bash ci/publish_report.sh desktop
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -60,10 +69,15 @@ jobs:
         run: flutter pub get
       - name: Analyze
         working-directory: app
-        run: flutter analyze --no-fatal-infos
+        run: |
+          mkdir -p ../ci-out/android
+          set -o pipefail
+          flutter analyze --no-fatal-infos 2>&1 | tee ../ci-out/android/analyze.log
       - name: Unit tests (SQLite, financial, backup/restore, Sheets sync)
         working-directory: app
-        run: flutter test --reporter expanded --file-reporter json:test-results.json
+        run: |
+          set -o pipefail
+          flutter test --reporter expanded --file-reporter json:test-results.json 2>&1 | tee ../ci-out/android/unit-tests.log
       - name: Release signing key (from repository secrets)
         id: sign
         env:
@@ -83,10 +97,14 @@ jobs:
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: pehlwania
-        run: flutter build apk --release
+        run: |
+          set -o pipefail
+          flutter build apk --release 2>&1 | tee ../ci-out/android/build-release.log
       - name: Build CI test APK (WebView debugging on, for the emulator test only)
         working-directory: app
-        run: flutter build apk --debug --dart-define=PDM_WEBVIEW_DEBUG=true
+        run: |
+          set -o pipefail
+          flutter build apk --debug --dart-define=PDM_WEBVIEW_DEBUG=true 2>&1 | tee ../ci-out/android/build-ci-debug.log
       - name: Verify APK (exists, size, package, version, SDKs, signature)
         id: verify
         run: |
@@ -102,6 +120,8 @@ jobs:
           VERSION=$(grep -o "versionName='[^']*'" badging.txt | cut -d"'" -f2)
           NAME="PehlwaniaPOS-v${VERSION}-${KIND}.apk"
           cp "$APK" "$NAME"
+          cp "$NAME" badging.txt signature.txt ci-out/android/
+          echo "$SHA  $NAME" > ci-out/android/SHA256SUMS.txt
           { echo "file=$NAME"; echo "size=$SIZE"; echo "sha256=$SHA"; echo "kind=$KIND"; echo "version=$VERSION"; } >> "$GITHUB_OUTPUT"
           { echo "## APK"; echo "- File: \`$NAME\` ($SIZE bytes)"; echo "- SHA-256: \`$SHA\`"; echo '```'; cat badging.txt signature.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
@@ -116,6 +136,12 @@ jobs:
         with:
           name: apk-ci-debug
           path: app/build/app/outputs/flutter-apk/app-debug.apk
+      - name: Publish CI report branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+        run: cp app/test-results.json ci-out/android/ 2>/dev/null; bash ci/publish_report.sh android
       - name: Publish to GitHub Release (main branch)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -162,7 +188,16 @@ jobs:
           ram-size: 3072M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
-          script: bash ci/emulator_test.sh
+          script: bash -c 'set -o pipefail; bash ci/emulator_test.sh 2>&1 | tee emulator-run.log'
+      - name: Publish CI report branch
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          mkdir -p ci-out/emulator
+          cp -r web-tests/android-results.json web-tests/android-shots emulator-logcat.txt emulator-run.log ci-out/emulator/ 2>/dev/null
+          bash ci/publish_report.sh emulator
       - uses: actions/upload-artifact@v4
         if: always()
         with:

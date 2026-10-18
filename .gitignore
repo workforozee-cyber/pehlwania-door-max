@@ -32,3 +32,4 @@ google-services.json
 *backup*.json
 !**/test/fixtures/*.json
 AppData/
+ci-out/
