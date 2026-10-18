@@ -19,15 +19,21 @@ if (!device) { console.error('No Android device'); process.exit(2); }
 console.log('device', device.model(), device.serial());
 const sh = async c => (await device.shell(c)).toString().trim();
 
+const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout: ${what}`)), ms))]);
 async function launch() {
   console.log('launching', new Date().toISOString());
   await sh(`am start -W -n ${ACT}`);
-  console.log('activity started; pid', await sh(`pidof ${PKG}`), 'webview sockets', await sh('cat /proc/net/unix | grep -c devtools_remote || true'));
   for (let i = 0; i < 40; i++) {
     try {
-      const wv = await device.webView({ pkg: PKG }, { timeout: 5000 });
-      const page = await wv.page();
+      const pid = Number(await sh(`pidof ${PKG}`));
+      if (!pid) throw new Error('app process not running yet');
+      // attach to the WebView of the CURRENT process (an old one may still be listed after a restart)
+      let wv = device.webViews().find(w => w.pid() === pid);
+      if (!wv) wv = await device.webView({ pkg: PKG }, { timeout: 5000 });
+      if (wv.pid() !== pid) throw new Error(`stale WebView pid ${wv.pid()} != ${pid}`);
+      const page = await withTimeout(wv.page(), 20000, 'attach to WebView page');
       await page.waitForFunction(() => typeof State !== 'undefined' && State.users && State.users.length > 0, null, { timeout: 60000 });
+      console.log('WebView ready (pid', pid + ')');
       return page;
     } catch (e) { console.log('waiting for WebView:', String(e).split('\n')[0]); await sleep(1500); }
   }
