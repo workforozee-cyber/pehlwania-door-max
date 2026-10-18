@@ -1,0 +1,36 @@
+PEHLWANIA DOOR MAX - POS  (v3, desktop)
+=======================================
+
+HOW TO START
+------------
+1. Keep BOTH files together in this folder:
+      - Open Pehlwania POS.bat    (the launcher you click)
+      - PehlwaniaDoorMax-POS.html (the program)
+2. Double-click "Open Pehlwania POS.bat". It opens in its own window using
+   Edge/Chrome. No internet, no installation.
+   UPGRADING from v2: replace ONLY the .html file in your existing folder
+   (keep the "AppData" folder). All your data stays. Make a backup first.
+
+FIRST LOGIN:  admin / admin  -> change it in "Users & Access".
+
+NEW IN v3
+---------
+- Sizes in feet OR inches per line (inches: W x H / 144 = sq ft).
+  Default unit: Settings -> "Default size unit for new lines".
+- Fixed Monthly Expenses (rent, salaries, bills) in Expenses; shown in Reports.
+- Expense categories from the shop list (Labor/Mazdoori, Suzuki Transport/Fuel,
+  Bijli Ka Bill, Chaye/Khana, Raw Material Purchase).
+- Every payment is kept as its own record; double-clicking Save can no longer
+  create duplicate invoices or payments; multi-step saves are all-or-nothing.
+- Rate history on products (old invoices always keep their agreed rate).
+- WhatsApp balance reminder (invoice and customer screens).
+- "Backup & Sync" screen: backup status, verified backups with a checksum,
+  restore with a preview, automatic safety backup before restoring.
+
+YOUR DATA & BACKUPS
+-------------------
+- Everything is saved on THIS computer in the "AppData" folder. Works offline.
+- Click "Backup" (top-right) regularly and keep the file safe (USB / email).
+- The SAME backup file can be restored in the Android app: Backup & Sync ->
+  Restore Backup. Old v2 backup files can be restored too.
+- Google Sheets sync and Google Drive backup are in the Android app.

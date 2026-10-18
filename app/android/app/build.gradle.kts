@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -16,7 +18,8 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.pehlwania.pehlwania_pos"
+        // Registered in Google Cloud (Android OAuth client) together with the signing SHA-1.
+        applicationId = "com.pehlwania.doormax"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -29,11 +32,34 @@ android {
         versionName = flutter.versionName
     }
 
+    // Release signing: from environment variables (CI secrets) or android/key.properties
+    // (local builds). Neither the keystore nor its password is ever committed.
+    val keyProps = Properties().apply {
+        val f = rootProject.file("key.properties")
+        if (f.exists()) f.inputStream().use { load(it) }
+    }
+    val storeFilePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: keyProps.getProperty("storeFile")
+    val hasReleaseKey = !storeFilePath.isNullOrBlank() && file(storeFilePath).exists()
+
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = file(storeFilePath!!)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: keyProps.getProperty("storePassword")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: keyProps.getProperty("keyAlias") ?: "pehlwania"
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                    ?: keyProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Without the release key the "release" APK is signed with the debug key and
+            // must be labelled as a DEBUG-SIGNED test build (CI does this).
+            signingConfig = if (hasReleaseKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
@@ -46,4 +72,9 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Google Identity Services: OAuth authorization for Google Sheets / Drive
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
 }

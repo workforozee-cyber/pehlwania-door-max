@@ -1569,7 +1569,6 @@ function validateBackup(obj){
     if(!Array.isArray(d.items))res.errors.push(`${tag}: items missing.`);
     else d.items.forEach(it=>{if(!it||typeof it!=='object'){res.errors.push(`${tag}: bad item.`);return;}
       if(!num(it.qty)||!num(it.rate)||!num(it.width)||!num(it.height))res.errors.push(`${tag}: an item has a non-numeric value.`);
-      if(Number(it.rate)<0||Number(it.qty)<0)res.errors.push(`${tag}: negative rate or quantity.`);
       if(it.id){if(itemIds.has(it.id))res.errors.push(`${tag}: duplicate item ID ${it.id}.`);itemIds.add(it.id);}});
     if(d.payments!=null&&!Array.isArray(d.payments))res.errors.push(`${tag}: payments are not a list.`);
     (d.payments||[]).forEach(p=>{if(!p||!num(p.amount)||!(Number(p.amount)>0))res.errors.push(`${tag}: invalid payment amount.`);
