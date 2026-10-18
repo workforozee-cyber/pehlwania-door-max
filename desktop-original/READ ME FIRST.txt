@@ -1,0 +1,66 @@
+PEHLWANIA DOOR MAX - POS  (v2)
+==============================
+
+HOW TO START
+------------
+1. Keep BOTH files together in this folder:
+      - Open Pehlwania POS.bat    (the launcher you click)
+      - PehlwaniaDoorMax-POS.html (the program)
+2. Double-click "Open Pehlwania POS.bat".
+   It opens in its own app window using Edge/Chrome (already on every
+   Windows 10/11 PC). No internet, no installation.
+
+FIRST LOGIN
+-----------
+   Username:  admin
+   Password:  admin
+   -> After login, go to "Users & Access" and change the password
+      (edit the Owner user). You can also add staff logins there and
+      tick exactly which sections each person is allowed to see
+      (Child Access) - e.g. give a helper only "New Sale" + "Invoices".
+
+MAKE A DESKTOP ICON
+-------------------
+   Right-click "Open Pehlwania POS.bat" -> Send to -> Desktop (create shortcut).
+
+WHAT'S INSIDE
+-------------
+- Branches: add all your shop locations in Settings; pick the branch on
+  each bill. Invoices print that branch's address & phone.
+- Products: the item list is pre-loaded (Wood fiber, Full fiber, Lassani
+  door, Uv/pvc kitchen, etc.). Add more any time in "Products".
+- New Sale / Invoices / Quotations: enter Width x Height in FEET and choose
+  "per piece" or "per sq ft" pricing. Track advance & balance. Print A4.
+- Inventory: stock In / Out with a full movement log.
+- Suppliers & Purchases: record what you bought, pieces in, and how much
+  is still payable to each supplier.
+- Expenses: record shop expenses by category.
+- Reports: sales, profit/loss (after purchases & expenses), cash flow, and
+  money to receive / to pay - for ANY date range (this month, last year,
+  2 years back, or custom).
+
+SHOWCASE (show designs to walk-in customers)
+--------------------------------------------
+- Click "Showcase" in the menu. It is pre-loaded with 24 door, kitchen and
+  ceiling designs from your catalogs.
+- Click any picture to open it big; use the arrows to flip through.
+- Click "Slideshow" (or the button on the Dashboard) to auto-play designs
+  full-screen on a monitor for customers.
+- Add your own photos anytime with "Add Photo" (choose an image from the PC).
+
+ORDER TRACKING
+--------------
+- Every invoice becomes an order. Open "Orders" to see a board with columns:
+  Pending -> In Process -> Ready -> Delivered.
+- Drag a card to the next column (or use the dropdown on the card) as work
+  progresses. You can also change status from inside any invoice.
+
+YOUR DATA & BACKUPS
+-------------------
+- Everything is saved on THIS computer, in the "AppData" folder next to
+  these files. Works fully offline.
+- Click "Backup" (top-right) regularly and keep the file safe.
+- New PC? Copy the folder over, open it, then Settings -> Restore From Backup.
+- Always start with the same launcher and keep the whole folder together.
+
+Need changes? Just ask.

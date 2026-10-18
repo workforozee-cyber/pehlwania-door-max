@@ -1,0 +1,34 @@
+# Build outputs
+build/
+**/build/
+.dart_tool/
+**/.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+**/android/.gradle/
+**/android/local.properties
+**/android/app/debug/
+**/android/app/release/
+*.apk
+*.aab
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+# Signing & secrets — NEVER commit
+*.jks
+*.keystore
+key.properties
+**/android/key.properties
+*.p12
+client_secret*.json
+service-account*.json
+google-services.json
+.env
+.env.*
+# Real business data / backups
+*backup*.json
+!**/test/fixtures/*.json
+AppData/
