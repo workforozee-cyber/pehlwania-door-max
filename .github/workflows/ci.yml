@@ -98,7 +98,12 @@ jobs:
           if [ -n "$KS_B64" ]; then
             echo "$KS_B64" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.jks"
             # tolerate common paste mistakes: whitespace/newlines or the whole "STORE_PASSWORD=..." line
-            PW=$(printf '%s' "$KS_PW_RAW" | tr -d '\r\n' | sed -E 's/^[[:space:]]*(STORE_PASSWORD|KEY_PASSWORD)=//; s/^[[:space:]]+//; s/[[:space:]]+$//')
+            if printf '%s' "$KS_PW_RAW" | grep -q 'STORE_PASSWORD='; then
+              # the whole keystore-credentials.txt was pasted: take the STORE_PASSWORD line
+              PW=$(printf '%s\n' "$KS_PW_RAW" | tr -d '\r' | grep -m1 'STORE_PASSWORD=' | sed -E 's/.*STORE_PASSWORD=//; s/KEY_PASSWORD=.*//; s/[[:space:]]+$//')
+            else
+              PW=$(printf '%s' "$KS_PW_RAW" | tr -d '\r\n' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+            fi
             echo "::add-mask::$PW"
             if keytool -list -keystore "$RUNNER_TEMP/release.jks" -storepass "$PW" -alias pehlwania >/dev/null 2>&1; then
               echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
