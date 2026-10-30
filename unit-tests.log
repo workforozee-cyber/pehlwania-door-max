@@ -1,0 +1,38 @@
+00:00 +0: loading /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart
+00:00 +0: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: schema & migrations fresh database is created at the current schema version with integrity ok
+00:00 +1: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: schema & migrations reopening keeps data; opening with an OLDER app version is refused without changes
+error Database upgrade failed: This database was created by a newer app version (schema 2). Install the latest app; your data has not been changed. during open, closing...
+00:00 +2: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: persistence & round-trip invoice with items + payments round-trips exactly (extra fields kept)
+00:00 +3: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: persistence & round-trip money math matches the app: inches ÷144, feet unchanged, discount & tax
+00:00 +4: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: persistence & round-trip a failing write rolls back the whole batch (atomic)
+00:00 +5: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: persistence & round-trip invalid records are rejected with a clear message
+00:00 +6: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: persistence & round-trip delete invoice removes items & payments, queues sheet deletions and keeps an audit record
+00:00 +7: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: financial integrity payments are separate rows; re-saving with the same payment ID never duplicates it
+00:00 +8: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: financial integrity changing a product rate never changes existing invoices (historical rate kept)
+00:00 +9: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: financial integrity older lines without item/payment IDs get stable IDs on first save
+00:00 +10: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/data_test.dart: financial integrity unchanged re-save does not queue anything for sync
+00:00 +11: loading /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart
+00:01 +11: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart: backup v3 contains every store, correct counts, totals and a valid checksum
+00:01 +12: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart: corrupted, edited and unsupported files are rejected before anything changes
+00:01 +13: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart: full restore replaces everything, verifies, and makes a safety backup first
+00:02 +14: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart: a restore that fails half-way leaves the previous data intact
+00:02 +15: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart: original desktop (v2) backup files restore, older items get stable IDs
+00:02 +16: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/backup_test.dart: backup status keeps the last success when a later attempt fails
+00:02 +17: loading /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart
+00:03 +17: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: changes made offline are kept and synced when internet returns
+00:03 +18: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: creates all tabs with the documented headers; rows matched by ID
+00:03 +19: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: lost response after append does not create duplicates on retry
+00:03 +20: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: updates change the existing row; payments are one row each, never duplicated
+00:03 +21: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: deleted records are marked Deleted, not removed; missing sheet row never deletes local data
+00:04 +22: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: a financial row edited in the sheet is a conflict and is not overwritten until resolved
+00:04 +23: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: non-financial conflict: phone wins and the event is logged
+00:04 +24: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: rate limit (429) on write: kept for retry with backoff; last success time not updated
+00:04 +25: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: server error on the first request: nothing lost, retried next time
+00:04 +26: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: expired token: refreshed once automatically
+00:04 +27: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: revoked access / deleted spreadsheet: local data and queue kept, clear status
+00:04 +28: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: switching to a different spreadsheet uploads everything again, matched by ID
+00:04 +29: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: after a restore nothing is duplicated in the sheet
+00:05 +30: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: Sync Log tab gets a summary row; tokens never appear in logs
+00:05 +31: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: Google sign-in not configured: clear state, app keeps working
+00:05 +32: /home/runner/work/pehlwania-door-max/pehlwania-door-max/app/test/sync_test.dart: Drive backup uploads a verified, restorable backup
+00:05 +33: All tests passed!
