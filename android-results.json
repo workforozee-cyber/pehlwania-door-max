@@ -1,0 +1,143 @@
+{
+  "at": "2026-10-30T18:48:16.629Z",
+  "device": "sdk_gphone64_x86_64",
+  "passed": 27,
+  "failed": 0,
+  "results": [
+    {
+      "name": "app starts and shows login (native SQLite mode)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "invoice saved once (double tap guarded)",
+      "ok": true,
+      "detail": "{\"n\":1,\"grand\":21000,\"bal\":16000,\"no\":\"INV-0001\",\"id\":\"ee9d7a43-8128-4bed-8931-18b530c6a1b6\"}"
+    },
+    {
+      "name": "inch calculation on device: 36×84 in ×2 @500 = 21,000; balance 16,000",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "records are read back from native SQLite through the bridge",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "saving works in airplane mode",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "sync status: offline, Google not connected (no Google setup in CI)",
+      "ok": true,
+      "detail": "{\"online\":false,\"state\":\"not_connected\"}"
+    },
+    {
+      "name": "changes are queued for Google Sheets while offline",
+      "ok": true,
+      "detail": "pending=42"
+    },
+    {
+      "name": "PDF bill generated and Android print preview is on screen",
+      "ok": true,
+      "detail": "topResumedActivity=ActivityRecord{5495042 u0 com.android.printspooler/.ui.PrintActivity t8}"
+    },
+    {
+      "name": "backup saved via Android file picker and verified",
+      "ok": true,
+      "detail": "{\"saved\":true,\"result\":\"success\",\"file\":\"PehlwaniaPOS-backup-2026-10-30_18-46-43.json\",\"size\":1293907,\"records\":68,\"error\":\"\"}"
+    },
+    {
+      "name": "backup file exists on phone storage",
+      "ok": true,
+      "detail": "PehlwaniaPOS-backup-2026-10-30_18-46-43.json"
+    },
+    {
+      "name": "invoice deleted after the backup (restore must bring it back)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "backup file chosen in Android file picker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "restore preview shows the backup contents before changing anything",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "full restore on device brings back the invoice, both payments and expenses",
+      "ok": true,
+      "detail": "{\"pays\":2,\"bal\":10000,\"exp\":2}"
+    },
+    {
+      "name": "media wall calculator on the phone: 9 panels + 2 UV sheets for 10 × 10 ft (4 ft UV)",
+      "ok": true,
+      "detail": "[9,2]"
+    },
+    {
+      "name": "Save to Gallery: PNG added to MediaStore in Pictures/Pehlwania POS",
+      "ok": true,
+      "detail": "Row: 0 _display_name=Pehlwania-mediawall-Emulator_Lounge-2026-10-30-18-47.png, relative_path=Pictures/Pehlwania POS/, mime_type=image/png"
+    },
+    {
+      "name": "saved image file exists on phone storage and is a PNG",
+      "ok": true,
+      "detail": "Pehlwania-mediawall-Emulator_Lounge-2026-10-30-18-47.png"
+    },
+    {
+      "name": "Share opens WhatsApp, or the Android share sheet when WhatsApp is not installed",
+      "ok": true,
+      "detail": "topResumedActivity=ActivityRecord{503da1a u0 com.android.intentresolver/.ChooserActivity t8}"
+    },
+    {
+      "name": "all screens render on the phone without JavaScript errors",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "after force-stop: invoice is in the SQLite file with its total",
+      "ok": true,
+      "detail": "[[\"INV-0001\",21000]]"
+    },
+    {
+      "name": "after force-stop: both payments (11,000) stored as separate rows",
+      "ok": true,
+      "detail": "[[2,11000]]"
+    },
+    {
+      "name": "after force-stop: item stored with inch unit, agreed rate 500, 21 sq ft per piece",
+      "ok": true,
+      "detail": "[[\"in\",36,84,2,500,21,21000]]"
+    },
+    {
+      "name": "after force-stop: expenses (incl. the offline one) stored",
+      "ok": true,
+      "detail": "[[2,2200]]"
+    },
+    {
+      "name": "database integrity and relationships OK",
+      "ok": true,
+      "detail": "[[\"ok\"]]"
+    },
+    {
+      "name": "audit log recorded the restore",
+      "ok": true,
+      "detail": "[[\"payment_added\"],[\"created\"],[\"payment_added\"],[\"deleted\"],[\"restored\"]]"
+    },
+    {
+      "name": "after force-stop + restart the app shows the invoice, payments and expenses",
+      "ok": true,
+      "detail": "{\"pays\":2,\"bal\":10000,\"exp\":2}"
+    },
+    {
+      "name": "no app crash in logcat",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}
