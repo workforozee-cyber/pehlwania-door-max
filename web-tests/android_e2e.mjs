@@ -160,8 +160,11 @@ const before = (await ev(() => PDMNative.call('backup.status'))).lastSuccessAt |
 evNoWait(() => Backup.export());
 await sleep(6000); shot('06-android-save-screen');
 const saved = await uiTap(n => /^save$/i.test(n.text) || n.id === 'android:id/button1', 15000);
-await sleep(6000);
-const bst = await ev(() => PDMNative.call('backup.status'));
+let bst = {};
+for (let i = 0; i < 40; i++) { // writing + read-back verification of ~1.3 MB can take a few seconds
+  await sleep(1000); bst = await ev(() => PDMNative.call('backup.status'));
+  if (bst.lastSuccessAt && bst.lastSuccessAt !== before) break;
+}
 check('backup saved via Android file picker and verified', saved && bst.lastResult === 'success' && !!bst.lastSuccessAt && bst.lastSuccessAt !== before,
   JSON.stringify({ saved, result: bst.lastResult, file: bst.fileName, size: bst.sizeBytes, records: bst.records, error: bst.lastError }));
 const downloads = sh('ls /sdcard/Download/');
@@ -173,8 +176,9 @@ check('invoice deleted after the backup (restore must bring it back)', (await ev
 evNoWait(() => Backup.pick());
 await sleep(6000); shot('07-android-open-screen');
 const fname = bst.fileName || '__none__';
-let picked = await uiTap(n => n.text === fname, 8000);
-if (!picked) { await uiTap(n => /show roots/i.test(n.desc), 4000); await sleep(1200); await uiTap(n => /^downloads$/i.test(n.text), 4000); await sleep(1500); picked = await uiTap(n => n.text === fname, 8000); }
+const isBackup = n => n.text === fname || n.text.startsWith('PehlwaniaPOS-backup');
+let picked = await uiTap(isBackup, 8000);
+if (!picked) { await uiTap(n => /show roots/i.test(n.desc), 4000); await sleep(1200); await uiTap(n => /^downloads$/i.test(n.text), 4000); await sleep(1500); picked = await uiTap(isBackup, 8000); }
 check('backup file chosen in Android file picker', picked);
 let restored = null;
 if (picked) {
