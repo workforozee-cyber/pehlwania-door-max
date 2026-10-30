@@ -1,0 +1,297 @@
+{
+  "at": "2026-10-30T18:29:20.567Z",
+  "passed": 58,
+  "failed": 0,
+  "results": [
+    {
+      "name": "original v2 app: invoice created in its IndexedDB",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "original v2 app: legacy backup file downloaded",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "upgrade: existing invoice still present after opening new version",
+      "ok": true,
+      "detail": "{\"docs\":1,\"fx\":true,\"grand\":30000,\"bal\":20000,\"prods\":36}"
+    },
+    {
+      "name": "upgrade: totals unchanged (30000 total, 20000 balance)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "upgrade: new fixed-expenses store available",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "upgrade: spec products added without removing originals",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "inch line: 36in×84in ÷144 ×2 qty ×500 = 21,000",
+      "ok": true,
+      "detail": "sub=57000"
+    },
+    {
+      "name": "feet line unchanged (4ft×7.5ft×1200 = 36,000)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "double tap on Save creates only ONE invoice",
+      "ok": true,
+      "detail": "count=1"
+    },
+    {
+      "name": "items stored with stable IDs and unit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "advance stored as a payment record with its own ID",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "second payment added once even when Save tapped twice",
+      "ok": true,
+      "detail": "payments=2"
+    },
+    {
+      "name": "balance = total − payments (57000 − 17000 = 40000)",
+      "ok": true,
+      "detail": "bal=40000"
+    },
+    {
+      "name": "rate master: product rate updated to 999 with history entry",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "historical invoice keeps agreed rate 500 and total 57000",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "failed multi-step save rolls back completely",
+      "ok": true,
+      "detail": "rolled-back"
+    },
+    {
+      "name": "daily expense saved",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "fixed monthly expense counted once for this month",
+      "ok": true,
+      "detail": "{\"n\":1,\"cost\":40000,\"costYear\":40000,\"exp\":1}"
+    },
+    {
+      "name": "report shows fixed monthly expenses line",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "data survives app reload",
+      "ok": true,
+      "detail": "{\"d\":2,\"e\":1,\"f\":1}"
+    },
+    {
+      "name": "backup v3: format header present",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "backup v3: SHA-256 checksum matches payload (independently computed)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "backup v3: counts match contents",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "backup v3: contains invoices, payments, fixed expenses, gallery, users",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "backup status recorded (time, records, success)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "corrupted backup: checksum error shown and no Restore button",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "unsupported future version rejected",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "before restore: invoice deleted, extra expense added",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "safety backup of current data downloaded before restore",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "restore: deleted invoice is back with both payments",
+      "ok": true,
+      "detail": "{\"docs\":2,\"exp\":1,\"pays\":2,\"rate\":500,\"bal\":40000,\"fx\":1}"
+    },
+    {
+      "name": "restore: balance and historical rate preserved",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "restore: record added after backup is gone (replace-all policy)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "restore: fixed expenses restored",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "legacy v2 backup accepted (with \"older format\" note)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "legacy v2 restore: original invoice and balance back",
+      "ok": true,
+      "detail": "{\"docs\":1,\"bal\":20000}"
+    },
+    {
+      "name": "calculator \"pelling\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"Normal Pelling — 10 inch panels\",\"qty\":[13]}"
+    },
+    {
+      "name": "calculator \"pelling\" quantities for 10 × 10 ft",
+      "ok": true,
+      "detail": "[13]"
+    },
+    {
+      "name": "calculator \"uv\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"UV Sheet (4 ft × 9.5 ft)\",\"qty\":[4]}"
+    },
+    {
+      "name": "calculator \"uv\" quantities for 10 × 10 ft",
+      "ok": true,
+      "detail": "[4]"
+    },
+    {
+      "name": "calculator \"mediawall\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"Media Wall\",\"qty\":[9,2]}"
+    },
+    {
+      "name": "calculator \"mediawall\" quantities for 10 × 10 ft",
+      "ok": true,
+      "detail": "[9,2]"
+    },
+    {
+      "name": "calculator \"padding\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"Padding (10 inch × 9.5 ft)\",\"qty\":[2]}"
+    },
+    {
+      "name": "calculator \"padding\" quantities for 10 × 10 ft",
+      "ok": true,
+      "detail": "[2]"
+    },
+    {
+      "name": "calculator \"tiles\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"2 × 2 PVC Ceiling Tiles\",\"qty\":[27]}"
+    },
+    {
+      "name": "calculator \"tiles\" quantities for 10 × 10 ft",
+      "ok": true,
+      "detail": "[27]"
+    },
+    {
+      "name": "calculator \"pvc10\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"10 inch PVC Ceiling Panels\",\"qty\":[14]}"
+    },
+    {
+      "name": "calculator \"pvc10\" quantities for 10 × 10 ft",
+      "ok": true,
+      "detail": "[14]"
+    },
+    {
+      "name": "calculator \"design\" shows a result on screen",
+      "ok": true,
+      "detail": "{\"title\":\"PVC Ceiling — 10 inch panel border + 2×2 tiles in centre\",\"qty\":[7,27]}"
+    },
+    {
+      "name": "feet + inches converted before calculating (10 ft 6 in → 14 panels)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "negative measurement rejected with a message",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "empty measurement rejected with a message",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "calculation image (PNG) generated for Save to Gallery",
+      "ok": true,
+      "detail": "{\"len\":262110,\"w\":1080,\"h\":1345,\"head\":\"data:image/png;base64,\"}"
+    },
+    {
+      "name": "desktop: Save downloads the PNG",
+      "ok": true,
+      "detail": "Pehlwania-tiles-estimate-2026-10-30-18-29.png"
+    },
+    {
+      "name": "WhatsApp text has title, measurements and quantities",
+      "ok": true,
+      "detail": "*Pehlwania Door Max & Interior* | Material estimate: *2 × 2 PVC Ceiling Tiles* | Date: 30 Oct 2026 | "
+    },
+    {
+      "name": "Add to quotation: panels + UV sheets as quotation lines linked to products",
+      "ok": true,
+      "detail": "{\"type\":\"quote\",\"items\":[{\"d\":\"Wall Paneling Hard (10 inch)\",\"q\":9,\"b\":\"sqft\",\"w\":10,\"h\":114,\"pid\":true},{\"d\":\"UV Sheet (4×9.5 ft)\",\"q\":2,\"b\":\"piece\",\"w\":\"\",\"h\":\"\",\"pid\":true}]}"
+    },
+    {
+      "name": "sq-ft priced panel line uses the real piece size (10 in × 114 in)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "all screens render without JavaScript errors",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "phone width (380px): no horizontal page overflow on dashboard",
+      "ok": true,
+      "detail": "overflow=0px"
+    }
+  ]
+}

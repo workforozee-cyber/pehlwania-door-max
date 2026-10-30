@@ -1,0 +1,60 @@
+PASS  original v2 app: invoice created in its IndexedDB
+PASS  original v2 app: legacy backup file downloaded
+PASS  upgrade: existing invoice still present after opening new version  — {"docs":1,"fx":true,"grand":30000,"bal":20000,"prods":36}
+PASS  upgrade: totals unchanged (30000 total, 20000 balance)
+PASS  upgrade: new fixed-expenses store available
+PASS  upgrade: spec products added without removing originals
+PASS  inch line: 36in×84in ÷144 ×2 qty ×500 = 21,000  — sub=57000
+PASS  feet line unchanged (4ft×7.5ft×1200 = 36,000)
+PASS  double tap on Save creates only ONE invoice  — count=1
+PASS  items stored with stable IDs and unit
+PASS  advance stored as a payment record with its own ID
+PASS  second payment added once even when Save tapped twice  — payments=2
+PASS  balance = total − payments (57000 − 17000 = 40000)  — bal=40000
+PASS  rate master: product rate updated to 999 with history entry
+PASS  historical invoice keeps agreed rate 500 and total 57000
+PASS  failed multi-step save rolls back completely  — rolled-back
+PASS  daily expense saved
+PASS  fixed monthly expense counted once for this month  — {"n":1,"cost":40000,"costYear":40000,"exp":1}
+PASS  report shows fixed monthly expenses line
+PASS  data survives app reload  — {"d":2,"e":1,"f":1}
+PASS  backup v3: format header present
+PASS  backup v3: SHA-256 checksum matches payload (independently computed)
+PASS  backup v3: counts match contents
+PASS  backup v3: contains invoices, payments, fixed expenses, gallery, users
+PASS  backup status recorded (time, records, success)
+PASS  corrupted backup: checksum error shown and no Restore button
+PASS  unsupported future version rejected
+PASS  before restore: invoice deleted, extra expense added
+PASS  safety backup of current data downloaded before restore
+PASS  restore: deleted invoice is back with both payments  — {"docs":2,"exp":1,"pays":2,"rate":500,"bal":40000,"fx":1}
+PASS  restore: balance and historical rate preserved
+PASS  restore: record added after backup is gone (replace-all policy)
+PASS  restore: fixed expenses restored
+PASS  legacy v2 backup accepted (with "older format" note)
+PASS  legacy v2 restore: original invoice and balance back  — {"docs":1,"bal":20000}
+PASS  calculator "pelling" shows a result on screen  — {"title":"Normal Pelling — 10 inch panels","qty":[13]}
+PASS  calculator "pelling" quantities for 10 × 10 ft  — [13]
+PASS  calculator "uv" shows a result on screen  — {"title":"UV Sheet (4 ft × 9.5 ft)","qty":[4]}
+PASS  calculator "uv" quantities for 10 × 10 ft  — [4]
+PASS  calculator "mediawall" shows a result on screen  — {"title":"Media Wall","qty":[9,2]}
+PASS  calculator "mediawall" quantities for 10 × 10 ft  — [9,2]
+PASS  calculator "padding" shows a result on screen  — {"title":"Padding (10 inch × 9.5 ft)","qty":[2]}
+PASS  calculator "padding" quantities for 10 × 10 ft  — [2]
+PASS  calculator "tiles" shows a result on screen  — {"title":"2 × 2 PVC Ceiling Tiles","qty":[27]}
+PASS  calculator "tiles" quantities for 10 × 10 ft  — [27]
+PASS  calculator "pvc10" shows a result on screen  — {"title":"10 inch PVC Ceiling Panels","qty":[14]}
+PASS  calculator "pvc10" quantities for 10 × 10 ft  — [14]
+PASS  calculator "design" shows a result on screen  — {"title":"PVC Ceiling — 10 inch panel border + 2×2 tiles in centre","qty":[7,27]}
+PASS  feet + inches converted before calculating (10 ft 6 in → 14 panels)
+PASS  negative measurement rejected with a message
+PASS  empty measurement rejected with a message
+PASS  calculation image (PNG) generated for Save to Gallery  — {"len":262110,"w":1080,"h":1345,"head":"data:image/png;base64,"}
+PASS  desktop: Save downloads the PNG  — Pehlwania-tiles-estimate-2026-10-30-18-29.png
+PASS  WhatsApp text has title, measurements and quantities  — *Pehlwania Door Max & Interior* | Material estimate: *2 × 2 PVC Ceiling Tiles* | Date: 30 Oct 2026 | 
+PASS  Add to quotation: panels + UV sheets as quotation lines linked to products  — {"type":"quote","items":[{"d":"Wall Paneling Hard (10 inch)","q":9,"b":"sqft","w":10,"h":114,"pid":true},{"d":"UV Sheet (4×9.5 ft)","q":2,"b":"piece","w":"","h":"","pid":true}]}
+PASS  sq-ft priced panel line uses the real piece size (10 in × 114 in)
+PASS  all screens render without JavaScript errors
+PASS  phone width (380px): no horizontal page overflow on dashboard  — overflow=0px
+
+58/58 passed
