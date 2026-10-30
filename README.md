@@ -1,7 +1,9 @@
 # Pehlwania Door Max & Interior — POS
 
 Offline point-of-sale for **Pehlwania Door Max & Interior**: sales & quotations with
-square-feet calculation (feet or inches), customer ledger (khata), payments,
+square-feet calculation (feet or inches), **material calculators** (Normal/Hard pelling,
+UV sheet, media wall, padding, 2×2 PVC tiles, 10" PVC ceiling, ceiling design — with Save to Gallery and
+WhatsApp sharing, see [docs/CALCULATORS.md](docs/CALCULATORS.md)), customer ledger (khata), payments,
 order tracking, inventory, suppliers & purchases, daily and fixed monthly expenses,
 reports, staff logins, design showcase, PDF bills and WhatsApp reminders.
 
@@ -24,12 +26,14 @@ reverse; the original v2 desktop backups are accepted too.
 app/                      Flutter Android app
   assets/www/index.html   the shared POS screens (also the desktop source)
   assets/www/seed_gallery.js  showcase photos
+  assets/www/calc_engine.js   material calculator formulas (pure functions)
   lib/data/               SQLite schema, migrations, record<->table mapping, money math
   lib/backup/             backup v3 build/validate/restore, Drive backup
   lib/sync/               Google auth (token), Sheets/Drive REST, sync engine
   lib/pdf/                PDF bill
   lib/bridge.dart         JavaScript <-> Dart bridge
   android/…/MainActivity.kt   Google authorization (Identity AuthorizationClient)
+  android/…/MediaShare.kt     Save to Gallery (MediaStore) + WhatsApp share intent
   test/                   unit tests (SQLite via FFI, fake Google Sheets server)
 desktop/                  built single-file desktop app (python3 tools/build_desktop.py)
 desktop-original/         the original v2 app, unchanged, for reference
