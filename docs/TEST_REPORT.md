@@ -1,4 +1,20 @@
-# Test report — v3.0.0
+# Test report — v3.1.0 (build 21)
+
+## v3.1.0 — material calculators, Save to Gallery, WhatsApp share (CI build 21, commit 4257e01)
+| Area | Command | Result | Evidence |
+|---|---|---|---|
+| Calculator formulas (hand-worked expected quantities, validation, ft/in conversion) | `node web-tests/calc_engine_test.mjs` | **Passed 40/40** | `ci-reports/desktop: calc-engine.log` |
+| Calculators screen in the app (all 7, 10×10 ft quantities, ft+in input, negative/empty rejected, PNG image, desktop save, WhatsApp text, add-to-quotation) + all earlier checks | `node web-tests/desktop_e2e.mjs` | **Passed 58/58** | `ci-reports/desktop: desktop-e2e.log` |
+| Static analysis / Dart unit tests (unchanged features) | `flutter analyze`, `flutter test` | **Passed** (no issues) / **33/33** | `ci-reports/android` |
+| Android emulator, real app (API 34) | `ci/emulator_test.sh` | **Passed 27/27** incl. media wall on device = 9 panels + 2 UV sheets; **Save to Gallery → PNG in MediaStore `Pictures/Pehlwania POS/` (image/png)**; **Share → Android share sheet** (WhatsApp is not installed on the emulator); all earlier checks (SQLite file after force-stop, offline, backup/restore, print) | `ci-reports/emulator` |
+| Release APK v3.1.0 | `aapt2`, `apksigner` | **Passed** — versionCode 4, release key SHA-1 `1A:7E:25:…:28:0E` (same key → installs over 3.0.0 keeping data); SHA-256 `6fb20d4e336b9fb40bb92c8c78017d144011c26a3ac99bae117178bca57e54c4` | `badging.txt`, `signature.txt` |
+| WhatsApp itself, Android 7–9 storage permission prompt, physical phone | manual | **Not run** (no WhatsApp / old Android in CI) | — |
+
+Build 19 failed 8 emulator checks: the test read the backup status before the ~1.3 MB file had finished verifying (the file *was* saved). The test now waits for the status; build 21 passed everything.
+
+---
+
+## Earlier report — v3.0.0
 
 All tests run automatically in GitHub Actions on every push (`.github/workflows/ci.yml`).
 Results, logs, screenshots and the APK of the latest run are on the `ci-reports/*` branches.
