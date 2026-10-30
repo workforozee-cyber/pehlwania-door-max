@@ -149,9 +149,10 @@ sh('cmd connectivity airplane-mode disable'); sh('svc wifi enable'); sh('svc dat
 // ---- PDF bill: Android print preview ----
 evNoWait(id => Print.doc(id), inv.id);
 await sleep(8000); shot('05-print-preview');
-const printUi = Number(sh('dumpsys activity activities | grep -i -c printspooler') || 0);
-check('PDF bill generated and Android print preview opened', printUi > 0, `printspooler entries=${printUi}`);
-for (let i = 0; i < 3 && Number(sh('dumpsys activity activities | grep -i -c printspooler') || 0) > 0; i++) { sh('input keyevent 4'); await sleep(2000); }
+const topIs = re => re.test(sh('dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -1'));
+const topAct = sh('dumpsys activity activities | grep -E "topResumedActivity|mResumedActivity" | head -1');
+check('PDF bill generated and Android print preview is on screen', /printspooler/i.test(topAct), topAct.trim().slice(0, 120));
+for (let i = 0; i < 4 && topIs(/printspooler|print/i); i++) { sh('input keyevent 4'); await sleep(2000); }
 
 // ---- backup through Android's Save screen ----
 await ev(() => Nav.go('sync')); await sleep(800);
@@ -210,7 +211,7 @@ evNoWait(() => Views.calcShare());
 await sleep(5000); shot('15-share-sheet');
 const acts = sh('dumpsys activity activities | grep -iE "ChooserActivity|intentresolver|com.whatsapp" | head -3');
 check('Share opens WhatsApp, or the Android share sheet when WhatsApp is not installed', /chooser|intentresolver|whatsapp/i.test(acts), acts.split('\n')[0]);
-for (let i = 0; i < 3 && /chooser|intentresolver/i.test(sh('dumpsys activity activities | grep -iE "mResumedActivity|topResumedActivity"')); i++) { sh('input keyevent 4'); await sleep(1500); }
+for (let i = 0; i < 3 && topIs(/chooser|intentresolver/i); i++) { sh('input keyevent 4'); await sleep(1500); }
 
 // ---- every screen renders on the phone ----
 const errsBefore = pageErrors.length;
