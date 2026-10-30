@@ -21,7 +21,7 @@ import '../data/store_defs.dart';
 
 const kBackupFormat = 'pehlwania-pos-backup';
 const kBackupVersion = 3;
-const kAppVersion = '3.0.0';
+const kAppVersion = '3.1.0';
 
 class BackupValidation {
   final bool ok;

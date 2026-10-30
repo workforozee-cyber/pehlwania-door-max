@@ -77,4 +77,6 @@ flutter {
 dependencies {
     // Google Identity Services: OAuth authorization for Google Sheets / Drive
     implementation("com.google.android.gms:play-services-auth:21.2.0")
+    // FileProvider / ContextCompat (Gallery save + WhatsApp share)
+    implementation("androidx.core:core-ktx:1.13.1")
 }

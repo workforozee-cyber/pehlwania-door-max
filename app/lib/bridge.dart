@@ -45,6 +45,7 @@ class Bridge {
   }
 
   String _message(Object e) {
+    if (e is PlatformException) return e.message ?? e.code;
     final s = e.toString();
     return s.startsWith('Bad state: ') ? s.substring(11) : s.replaceFirst('Exception: ', '');
   }
@@ -134,6 +135,18 @@ class Bridge {
         final bytes = await buildBillPdf(b, logo: await _logo());
         await Printing.sharePdf(bytes: bytes, filename: _s(b['fileName'], 'bill.pdf'));
         return true;
+      // ------------------------------------------- calculators: Gallery / WhatsApp
+      case 'media.saveImage':
+        final b64 = (a['base64'] ?? '').toString();
+        if (b64.isEmpty) throw StateError('Nothing to save');
+        return await _media.invokeMapMethod<String, dynamic>('saveImage', {'base64': b64, 'fileName': _s(a['fileName'], 'estimate.png')});
+      case 'share.whatsapp':
+        return await _media.invokeMapMethod<String, dynamic>('share', {
+          'text': (a['text'] ?? '').toString(),
+          'base64': a['base64'],
+          'fileName': _s(a['fileName'], 'estimate.png'),
+          'phone': (a['phone'] ?? '').toString(),
+        });
       case 'app.openUrl':
         final uri = Uri.parse(a['url'].toString());
         if (uri.scheme != 'https') throw StateError('Only secure links can be opened');
@@ -144,6 +157,8 @@ class Bridge {
     }
     throw DataError('Unknown action: $method');
   }
+
+  static const _media = MethodChannel('pdm/media');
 
   String _s(Object? v, String d) => (v == null || v.toString().isEmpty) ? d : v.toString();
 

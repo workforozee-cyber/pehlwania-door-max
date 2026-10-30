@@ -154,6 +154,42 @@ await login();
 const leg = await ev(() => ({ docs: State.documents.length, bal: docTotals(State.documents[0]).balance }));
 check('legacy v2 restore: original invoice and balance back', leg.docs === 1 && leg.bal === 20000, JSON.stringify(leg));
 
+// ---------- 12b. Material calculators ----------
+await ev(() => Nav.go('calc'));
+for (const k of ['pelling', 'uv', 'mediawall', 'padding', 'tiles', 'pvc10', 'design']) {
+  await ev(x => Views.calc(x), k);
+  await page.fill('#c_W_ft', '10');
+  if (await page.$('#c_H_ft')) await page.fill('#c_H_ft', '10');
+  if (await page.$('#c_L_ft')) await page.fill('#c_L_ft', '10');
+  if (k === 'mediawall') await page.fill('#c_uv_ft', '4');
+  await page.click('#calcGo');
+  const res = await ev(() => Views._calcRes && { title: Views._calcRes.title, qty: Views._calcRes.materials.map(m => m.qty) });
+  const expected = { pelling: [13], uv: [4], mediawall: [9, 2], padding: [2], tiles: [27], pvc10: [14], design: [] }[k];
+  const shown = await page.$('#calcOut .calc-res');
+  check(`calculator "${k}" shows a result on screen`, !!res && !!shown, JSON.stringify(res));
+  if (expected.length) check(`calculator "${k}" quantities for 10 × 10 ft`, JSON.stringify(res.qty) === JSON.stringify(expected), JSON.stringify(res.qty));
+}
+// feet + inches input: 10 ft 6 in wall, 10" panels: 126/10 = 12.6 -> 13 strips of 10 ft -> 13 + 1 = 14
+await ev(() => Views.calc('pelling')); await page.fill('#c_W_ft', '10'); await page.fill('#c_W_in', '6'); await page.fill('#c_H_ft', '10'); await page.click('#calcGo');
+check('feet + inches converted before calculating (10 ft 6 in → 14 panels)', (await ev(() => Views._calcRes.materials[0].qty)) === 14);
+await ev(() => Views.calc('tiles')); await page.fill('#c_W_ft', '-4'); await page.fill('#c_L_ft', '10'); await page.click('#calcGo');
+check('negative measurement rejected with a message', /negative/.test(await page.textContent('#calcErr')) && !(await ev(() => Views._calcRes)));
+await page.fill('#c_W_ft', ''); await page.click('#calcGo');
+check('empty measurement rejected with a message', /greater than zero/.test(await page.textContent('#calcErr')));
+await page.fill('#c_W_ft', '10'); await page.click('#calcGo');
+const png = await ev(async () => { const d = await calcImage(Views._calcRes); const im = new Image(); im.src = d; await im.decode(); return { len: d.length, w: im.width, h: im.height, head: d.slice(0, 22) }; });
+check('calculation image (PNG) generated for Save to Gallery', png.head === 'data:image/png;base64,' && png.w === 1080 && png.h > 900, JSON.stringify(png));
+const [imgDl] = await Promise.all([page.waitForEvent('download'), ev(() => Views.calcSave())]);
+check('desktop: Save downloads the PNG', /\.png$/.test(imgDl.suggestedFilename()), imgDl.suggestedFilename());
+const share = await ev(() => calcShareText(Views._calcRes));
+check('WhatsApp text has title, measurements and quantities', /2 × 2 PVC Ceiling Tiles/.test(share) && /Ceiling size/.test(share) && /\*27 tiles\*/.test(share), share.split('\n').slice(0, 4).join(' | '));
+await ev(() => Views.calc('mediawall')); await page.fill('#c_W_ft', '10'); await page.fill('#c_H_ft', '10'); await page.fill('#c_uv_ft', '4'); await page.click('#calcGo');
+await ev(() => Views.calcToQuote());
+const q = await ev(() => ({ type: Views._draft.type, items: Views._draft.items.map(i => ({ d: i.desc, q: i.qty, b: i.basis, w: i.width, h: i.height, pid: !!i.productId })) }));
+check('Add to quotation: panels + UV sheets as quotation lines linked to products', q.type === 'quote' && q.items.length === 2 && q.items[0].q === 9 && q.items[1].q === 2 && q.items.every(i => i.pid), JSON.stringify(q));
+check('sq-ft priced panel line uses the real piece size (10 in × 114 in)', q.items[0].b === 'sqft' && q.items[0].w === 10 && q.items[0].h === 114);
+await ev(() => Nav.go('dashboard'));
+
 // ---------- 13. Every screen renders ----------
 const views = await ev(() => MODULES.map(m => m.k));
 for (const v of views) { await ev(v2 => Nav.go(v2), v); await page.waitForTimeout(120); }

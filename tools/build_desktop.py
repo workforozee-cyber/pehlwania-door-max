@@ -9,10 +9,11 @@ import pathlib, sys
 root = pathlib.Path(__file__).resolve().parents[1]
 www = root / 'app' / 'assets' / 'www'
 html = (www / 'index.html').read_text(encoding='utf-8')
-seed = (www / 'seed_gallery.js').read_text(encoding='utf-8')
-tag = '<script src="seed_gallery.js"></script>'
-assert html.count(tag) == 1, 'seed_gallery.js script tag not found'
-out = html.replace(tag, '<script>\n' + seed + '</script>')
+out = html
+for js in ('seed_gallery.js', 'calc_engine.js'):
+    tag = f'<script src="{js}"></script>'
+    assert out.count(tag) == 1, f'{js} script tag not found'
+    out = out.replace(tag, '<script>\n' + (www / js).read_text(encoding='utf-8') + '</script>')
 target = root / 'desktop' / 'PehlwaniaDoorMax-POS.html'
 if '--check' in sys.argv:
     cur = target.read_text(encoding='utf-8') if target.exists() else ''

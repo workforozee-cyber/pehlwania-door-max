@@ -26,6 +26,11 @@ jobs:
         with: { node-version: '22' }
       - name: Desktop single-file build is up to date
         run: python3 tools/build_desktop.py --check
+      - name: Calculator unit tests (hand-checked quantities)
+        run: |
+          mkdir -p ci-out/desktop
+          set -o pipefail
+          node web-tests/calc_engine_test.mjs 2>&1 | tee ci-out/desktop/calc-engine.log
       - name: Install Playwright
         working-directory: web-tests
         run: npm install && npx playwright install --with-deps chromium

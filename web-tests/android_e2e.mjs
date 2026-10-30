@@ -191,6 +191,27 @@ if (picked) {
 }
 check('full restore on device brings back the invoice, both payments and expenses', restored && restored.pays === 2 && restored.bal === 10000 && restored.exp === 2, JSON.stringify(restored));
 
+// ---- material calculators: Save to Gallery (MediaStore) + share ----
+await ev(() => Nav.go('calc'));
+await ev(() => { Views.calc('mediawall'); document.querySelector('#c_proj').value = 'Emulator Lounge';
+  document.querySelector('#c_W_ft').value = '10'; document.querySelector('#c_H_ft').value = '10'; document.querySelector('#c_uv_ft').value = '4'; });
+const calc = await ev(() => { const r = Views.calcRun(); return r && r.materials.map(m => m.qty); });
+check('media wall calculator on the phone: 9 panels + 2 UV sheets for 10 × 10 ft (4 ft UV)', JSON.stringify(calc) === '[9,2]', JSON.stringify(calc));
+await sleep(800); shot('14-calculator-result');
+const galleryBefore = sh("content query --uri content://media/external/images/media --projection _display_name:relative_path | grep -c 'Pehlwania POS'") || '0';
+const saveRes = await ev(async () => { try { await Views.calcSave(); return 'ok'; } catch (e) { return String(e); } });
+await sleep(4000);
+const galleryRows = sh("content query --uri content://media/external/images/media --projection _display_name:relative_path:mime_type | grep 'Pehlwania POS'");
+const pics = sh("ls '/sdcard/Pictures/Pehlwania POS/'");
+check('Save to Gallery: PNG added to MediaStore in Pictures/Pehlwania POS', saveRes === 'ok' && Number((galleryRows.match(/Pehlwania-mediawall/g) || []).length) >= 1 && Number(galleryBefore) < galleryRows.split('\n').filter(Boolean).length,
+  galleryRows.split('\n').slice(-1)[0]);
+check('saved image file exists on phone storage and is a PNG', /Pehlwania-mediawall-Emulator_Lounge.*\.png/.test(pics) && /image\/png/.test(galleryRows), pics.split('\n').slice(-1)[0]);
+evNoWait(() => Views.calcShare());
+await sleep(5000); shot('15-share-sheet');
+const acts = sh('dumpsys activity activities | grep -iE "ChooserActivity|intentresolver|com.whatsapp" | head -3');
+check('Share opens WhatsApp, or the Android share sheet when WhatsApp is not installed', /chooser|intentresolver|whatsapp/i.test(acts), acts.split('\n')[0]);
+for (let i = 0; i < 3 && /chooser|intentresolver/i.test(sh('dumpsys activity activities | grep -iE "mResumedActivity|topResumedActivity"')); i++) { sh('input keyevent 4'); await sleep(1500); }
+
 // ---- every screen renders on the phone ----
 const errsBefore = pageErrors.length;
 for (const v of await ev(() => MODULES.map(m => m.k))) { await ev(x => Nav.go(x), v); await sleep(250); }

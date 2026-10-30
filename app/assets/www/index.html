@@ -179,6 +179,10 @@
   .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
   .scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .li-table{min-width:760px}
+  /* CALCULATORS */
+  .dim{display:flex;gap:6px;align-items:center}.dim .inp{min-width:0}.dim span{color:var(--muted);font-size:12px;font-weight:700}
+  .calc-steps{margin:0;padding-left:20px;font-size:13px;line-height:1.6}.calc-steps li{margin-bottom:2px}
+  #calcTabs .chip{user-select:none}
   /* PHONES (Android app) */
   @media(max-width:600px){
     body{font-size:13.5px}
@@ -278,6 +282,7 @@
 <input type="file" id="restoreFile" accept="application/json" style="display:none">
 
 <script src="seed_gallery.js"></script>
+<script src="calc_engine.js"></script>
 <script>
 /* =========================================================
    Pehlwania Door Max — Offline POS  (v2)
@@ -417,6 +422,7 @@ const MODULES=[
   {k:'invoices',label:'Invoices',icon:'📄'},
   {k:'orders',label:'Orders',icon:'🚚'},
   {k:'quotes',label:'Quotations',icon:'📝'},
+  {k:'calc',label:'Calculators',icon:'📐'},
   {k:'inventory',label:'Inventory',icon:'📦'},
   {k:'products',label:'Products',icon:'🚪'},
   {k:'customers',label:'Customers',icon:'👥'},
@@ -531,6 +537,14 @@ async function ensureSeedInner(){
       await DB.put('products',{id:uid(),name,category:cat,unit,stocked,price:0,stock:0,defaultBasis:unit==='sq ft'?'sqft':'piece',createdAt:Date.now()});}
     s.productsV=3;await DB.put('settings',s);
   }
+  if((s.productsV||0)<4){ /* items used by the material calculators (added once, nothing removed) */
+    const have=new Set((await DB.getAll('products')).map(p=>String(p.name).trim().toLowerCase()));
+    for(const [name,cat,unit,stocked] of [['Wall Paneling Normal (6 inch)','Wall Paneling & Decor','sq ft',false],['Wall Paneling Hard (6 inch)','Wall Paneling & Decor','sq ft',false],
+      ['UV Sheet (4×9.5 ft)','Wall Paneling & Decor','sheet',true],['Padding (10 inch × 9.5 ft)','Wall Paneling & Decor','piece',true],['10 inch PVC Ceiling Panel','Ceiling Work','piece',true]]){
+      if(have.has(name.toLowerCase()))continue;
+      await DB.put('products',{id:uid(),name,category:cat,unit,stocked,price:0,stock:0,defaultBasis:unit==='sq ft'?'sqft':'piece',createdAt:Date.now()});}
+    s.productsV=4;await DB.put('settings',s);
+  }
   if(!s.measureUnit){s.measureUnit='ft';await DB.put('settings',s);}
   // seed showcase gallery on first run
   const gal=await DB.getAll('gallery');
@@ -626,7 +640,7 @@ document.getElementById('nav').addEventListener('click',e=>{const a=e.target.clo
 const Nav=(()=>{
   const titles={dashboard:['Dashboard','Overview of your shop'],sales:['New Sale','Create an invoice'],
     gallery:['Showcase','Show designs to customers'],orders:['Orders','Track order progress'],
-    invoices:['Invoices','All sales & balances'],quotes:['Quotations','Estimates for customers'],
+    invoices:['Invoices','All sales & balances'],quotes:['Quotations','Estimates for customers'],calc:['Calculators','Panels, UV sheets, padding & ceiling material'],
     inventory:['Inventory','Stock in / out & levels'],products:['Products','Manage your item list'],
     customers:['Customers','Customer records & balances'],suppliers:['Suppliers','Supplier bills & payables'],
     purchases:['Purchases','Stock purchased from suppliers'],expenses:['Expenses','Shop expenses'],
@@ -1271,7 +1285,7 @@ Views.users=function(){
   $('#content').innerHTML=html;
 };
 Views.editUser=function(id){
-  const u=id?State.users.find(x=>x.id===id):{name:'',username:'',role:'staff',perms:{dashboard:true,sales:true,invoices:true},active:true};
+  const u=id?State.users.find(x=>x.id===id):{name:'',username:'',role:'staff',perms:{dashboard:true,sales:true,invoices:true,calc:true},active:true};
   const isAdmin=u.role==='admin';
   Modal.open(`<div class="mh"><h3>${id?'Edit':'Add'} User</h3><button class="x" onclick="Modal.close()">×</button></div>
   <div class="mb"><div class="grid2">
@@ -1505,6 +1519,173 @@ const Print=(()=>{function doc(id){
 }return{doc};})();
 
 /* =========================================================
+   CALCULATORS (material estimates) — engine in calc_engine.js
+   ========================================================= */
+const CALCS=[
+  {k:'pelling',label:'Normal / Hard Pelling',icon:'🪵'},
+  {k:'uv',label:'UV Sheet',icon:'🔲'},
+  {k:'mediawall',label:'Media Wall',icon:'📺'},
+  {k:'padding',label:'Padding',icon:'📏'},
+  {k:'tiles',label:'2×2 PVC Tiles',icon:'⬜'},
+  {k:'pvc10',label:'10" PVC Ceiling',icon:'〰️'},
+  {k:'design',label:'PVC Ceiling Design',icon:'🏠'},
+];
+/* material key -> product in the Products list (used by "Add to quotation") */
+const CALC_PRODUCTS={'pelling-Normal-6':'Wall Paneling Normal (6 inch)','pelling-Normal-10':'Wall Paneling Normal (10 inch)','pelling-Normal-16':'Wall Paneling Normal (16 inch)',
+  'pelling-Hard-6':'Wall Paneling Hard (6 inch)','pelling-Hard-10':'Wall Paneling Hard (10 inch)','pelling-Hard-16':'Wall Paneling Hard (16 inch)',
+  'uv':'UV Sheet (4×9.5 ft)','padding':'Padding (10 inch × 9.5 ft)','pvc10':'10 inch PVC Ceiling Panel','tile2x2':'2x2 PVC Ceiling'};
+Views._calcK='pelling';Views._calcVals={};Views._calcRes=null;
+Views.calc=function(k){
+  if(k)Views._calcK=k;const cur=Views._calcK;
+  $('#content').innerHTML=`<div class="panel"><div class="ph"><div class="chips" id="calcTabs">${CALCS.map(c=>`<span class="chip ${c.k===cur?'on':''}" onclick="Views.calc('${c.k}')">${c.icon} ${esc(c.label)}</span>`).join('')}</div></div>
+    <div class="pb"><div id="calcForm"></div>
+      <div class="btnrow"><button class="btn primary" id="calcGo" onclick="Views.calcRun()">🧮 Calculate</button><button class="btn" onclick="Views.calcReset()">↺ Reset</button></div>
+      <div id="calcErr"></div></div></div>
+    <div id="calcOut"></div>`;
+  Views.calcForm();Views._calcRes=null;
+};
+function dimField(id,label,v){v=v||{};return `<div class="field"><label class="fl">${esc(label)}</label><div class="dim"><input class="inp" type="number" inputmode="decimal" min="0" step="any" id="${id}_ft" value="${esc(v.ft??'')}" placeholder="0"><span>ft</span><input class="inp" type="number" inputmode="decimal" min="0" step="any" id="${id}_in" value="${esc(v.in??'')}" placeholder="0"><span>in</span></div></div>`;}
+function selField(id,label,opts,val){return `<div class="field"><label class="fl">${esc(label)}</label><select class="inp" id="${id}">${opts.map(([v,t])=>`<option value="${v}" ${String(v)===String(val)?'selected':''}>${esc(t)}</option>`).join('')}</select></div>`;}
+function numField(id,label,val,hint){return `<div class="field"><label class="fl">${esc(label)}</label><input class="inp" type="number" inputmode="decimal" min="0" step="any" id="${id}" value="${esc(val)}">${hint?`<div class="hint">${hint}</div>`:''}</div>`;}
+Views.calcForm=function(){
+  const k=Views._calcK,v=Views._calcVals[k]||{};
+  const proj=`<div class="grid2"><div class="field"><label class="fl">Project / customer name</label><input class="inp" id="c_proj" value="${esc(v.proj||'')}" placeholder="e.g. Ali Khan — lounge"></div>
+    <div class="field"><label class="fl">Customer WhatsApp (optional)</label><input class="inp" id="c_phone" inputmode="tel" value="${esc(v.phone||'')}" placeholder="03xx xxxxxxx"></div></div>`;
+  const panelW=[[6,'6 inch × 9.5 ft'],[10,'10 inch × 9.5 ft'],[16,'16 inch × 9.5 ft']];
+  const waste=d=>numField('c_waste','Wastage allowance %',v.waste??d,'Extra for cutting / breakage (0–50%). Layout count already includes offcuts.');
+  let f='';
+  if(k==='pelling')f=`<div class="grid3">${selField('c_type','Pelling type',[['Normal','Normal Pelling'],['Hard','Hard Pelling']],v.type||'Normal')}${selField('c_pw','Panel width',panelW,v.pw||10)}${selField('c_dir','Panels run',[['vertical','Vertically (floor to ceiling)'],['horizontal','Horizontally (side to side)']],v.dir||'vertical')}</div>
+    <div class="grid3">${dimField('c_W','Wall width',v.W)}${dimField('c_H','Wall height',v.H)}${waste(0)}</div>`;
+  else if(k==='uv')f=`<div class="grid3">${dimField('c_W','Area width',v.W)}${dimField('c_H','Area height',v.H)}${waste(0)}</div><p class="hint">UV sheet: 4 ft × 9.5 ft. The app tries the sheet upright and sideways and uses the one needing fewer sheets.</p>`;
+  else if(k==='mediawall')f=`<div class="grid3">${dimField('c_W','Media wall width',v.W)}${dimField('c_H','Media wall height',v.H)}${waste(0)}</div>
+    <div class="grid3">${selField('c_type','Pelling type',[['Normal','Normal Pelling'],['Hard','Hard Pelling']],v.type||'Hard')}${selField('c_pw','Panel width',panelW,v.pw||10)}${selField('c_dir','Panels run',[['vertical','Vertically'],['horizontal','Horizontally']],v.dir||'vertical')}</div>
+    <div class="grid3">${dimField('c_uv','UV sheet section width (0 = none)',v.uv)}${selField('c_uvpos','UV section position',[['center','Centre (panels on both sides)'],['side','One side']],v.uvpos||'center')}<div></div></div>`;
+  else if(k==='padding'){const sides=v.sides||['top'];f=`<div class="grid3">${dimField('c_W','Installation width',v.W)}${dimField('c_H','Installation height',v.H)}${waste(0)}</div>
+    <div class="grid2"><div class="field"><label class="fl">Padding goes on (only the sides you tick)</label><div class="chips">${['top','bottom','left','right'].map(s=>`<label class="chip ${sides.includes(s)?'on':''}" style="cursor:pointer"><input type="checkbox" class="c_side" value="${s}" ${sides.includes(s)?'checked':''} style="display:none" onchange="this.parentNode.classList.toggle('on',this.checked)"> ${s[0].toUpperCase()+s.slice(1)}</label>`).join('')}</div><div class="hint">Top/bottom run along the width, left/right along the height.</div></div>
+    ${numField('c_rows','Rows of padding (10 inch each)',v.rows??1)}</div>`;}
+  else if(k==='tiles')f=`<div class="grid3">${dimField('c_W','Ceiling width',v.W)}${dimField('c_L','Ceiling length',v.L)}${waste(5)}</div>`;
+  else if(k==='pvc10')f=`<div class="grid3">${dimField('c_W','Ceiling width',v.W)}${dimField('c_L','Ceiling length',v.L)}${waste(5)}</div>
+    <div class="grid3">${selField('c_dir','Panels run',[['auto','Automatic (fewest panels)'],['length','Along the length'],['width','Along the width']],v.dir||'auto')}</div>`;
+  else if(k==='design')f=`<div class="grid3">${dimField('c_W','Ceiling width',v.W)}${dimField('c_L','Ceiling length',v.L)}${waste(5)}</div>
+    <div class="grid3">${selField('c_design','Ceiling design',[['border-tiles','10" panel border + 2×2 tiles centre'],['border-plain','10" panel border + 10" panels centre'],['tiles','2×2 tiles only'],['plain10','10" panels only']],v.design||'border-tiles')}${numField('c_rows','Border rows (10 inch each)',v.rows??1)}<div></div></div>`;
+  $('#calcForm').innerHTML=proj+f;
+  $('#calcErr').innerHTML='';$('#calcOut').innerHTML='';
+};
+function readDim(id){return {ft:$('#'+id+'_ft')?.value??'',in:$('#'+id+'_in')?.value??''};}
+Views.calcCollect=function(){
+  const k=Views._calcK,v={proj:$('#c_proj').value.trim(),phone:$('#c_phone').value.trim()};
+  ['W','H','L','uv'].forEach(d=>{if($('#c_'+d+'_ft'))v[d]=readDim('c_'+d);});
+  [['type','c_type'],['pw','c_pw'],['dir','c_dir'],['uvpos','c_uvpos'],['design','c_design'],['rows','c_rows'],['waste','c_waste']].forEach(([key,id])=>{if($('#'+id))v[key]=$('#'+id).value;});
+  if(k==='padding')v.sides=[...document.querySelectorAll('.c_side:checked')].map(x=>x.value);
+  Views._calcVals[k]=v;return v;
+};
+/* turns the form values into an engine call; throws CalcEngine.CalcError on bad input */
+function calcCompute(k,v){
+  const E=window.CalcEngine,ft=(d,l)=>E.toFeet(d.ft,d.in,l),waste=E.wastePct(v.waste||0);
+  switch(k){
+    case 'pelling':return E.pelling({type:v.type,widthIn:Number(v.pw),W:ft(v.W,'Wall width'),H:ft(v.H,'Wall height'),dir:v.dir,waste});
+    case 'uv':return E.uvSheet({W:ft(v.W,'Area width'),H:ft(v.H,'Area height'),waste});
+    case 'mediawall':{const uvRaw=v.uv||{};const uv=(Number(uvRaw.ft)||0)+(Number(uvRaw.in)||0)/12;
+      if((uvRaw.ft!==''&&!(Number(uvRaw.ft)>=0))||(uvRaw.in!==''&&!(Number(uvRaw.in)>=0)))throw new E.CalcError('UV section width: enter a number (0 or more).');
+      return E.mediaWall({W:ft(v.W,'Media wall width'),H:ft(v.H,'Media wall height'),type:v.type,widthIn:Number(v.pw),uvW:uv,uvPos:v.uvpos,dir:v.dir,waste});}
+    case 'padding':return E.padding({W:ft(v.W,'Installation width'),H:ft(v.H,'Installation height'),sides:v.sides||[],rows:Number(v.rows),waste});
+    case 'tiles':return E.tiles2x2({W:ft(v.W,'Ceiling width'),L:ft(v.L,'Ceiling length'),waste});
+    case 'pvc10':return E.pvc10({W:ft(v.W,'Ceiling width'),L:ft(v.L,'Ceiling length'),dir:v.dir,waste});
+    case 'design':return E.ceilingDesign({W:ft(v.W,'Ceiling width'),L:ft(v.L,'Ceiling length'),design:v.design,borderRows:Number(v.rows),waste});
+  }
+  throw new Error('Unknown calculator');
+}
+Views.calcRun=function(){
+  const k=Views._calcK,v=Views.calcCollect();
+  let r;try{r=calcCompute(k,v);}catch(e){$('#calcErr').innerHTML=`<div class="alert err">${esc(e.message)}</div>`;$('#calcOut').innerHTML='';Views._calcRes=null;return null;}
+  $('#calcErr').innerHTML='';
+  r.project=v.proj;r.phone=v.phone;r.date=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});Views._calcRes=r;
+  const main=r.results.filter(x=>x[2]);
+  $('#calcOut').innerHTML=`<div class="panel calc-res"><div class="ph"><h3>📐 ${esc(r.title)}</h3><span class="muted">${esc(r.project||'')} ${r.project?'· ':''}${esc(r.date)}</span></div>
+    <div class="pb"><div class="cards">${main.map(m=>`<div class="kpi green"><div class="lbl">${esc(m[0])}</div><div class="val">${esc(m[1])}</div></div>`).join('')}</div>
+      <div class="grid2"><div><h4 style="margin:0 0 6px">Measurements</h4><table><tbody>${r.inputs.map(x=>`<tr><td class="muted">${esc(x[0])}</td><td><b>${esc(x[1])}</b></td></tr>`).join('')}</tbody></table></div>
+        <div><h4 style="margin:0 0 6px">Results</h4><table><tbody>${r.results.map(x=>`<tr${x[2]?' style="background:#fef6e8"':''}><td class="muted">${esc(x[0])}</td><td class="right"><b>${esc(x[1])}</b></td></tr>`).join('')}</tbody></table></div></div>
+      <h4 style="margin:14px 0 6px">How it was calculated</h4><ol class="calc-steps">${r.steps.map(s=>`<li>${esc(s.trim())}</li>`).join('')}</ol>
+      <p class="hint">"By layout" counts real panels/sheets in rows, so the material actually covers the area. "Theoretical" (area only) is shown for comparison and is usually too low.</p>
+      <div class="btnrow"><button class="btn navy" onclick="Views.calcSave()">💾 Save to Gallery</button><button class="btn primary" onclick="Views.calcShare()">💬 Share on WhatsApp</button>${can('sales')?`<button class="btn" onclick="Views.calcToQuote()">📝 Add to new quotation</button>`:''}<button class="btn" onclick="Views.calcReset()">↺ Reset</button></div>
+    </div></div>`;
+  setTimeout(()=>{const o=$('#calcOut');if(o&&o.scrollIntoView)o.scrollIntoView({behavior:'smooth',block:'start'});},50);
+  return r;
+};
+Views.calcReset=function(){delete Views._calcVals[Views._calcK];Views._calcRes=null;Views.calcForm();};
+/* ---------- share text ---------- */
+function calcShareText(r){const s=State.settings||{},br=(s.branches||[]).find(b=>b.id===s.activeBranchId)||(s.branches||[])[0]||{};
+  const shop=s.shopName||'Pehlwania Door Max';const lines=[`*${/interior/i.test(shop)?shop:shop+' & Interior'}*`,`Material estimate: *${r.title}*`];
+  if(r.project)lines.push(`Project: ${r.project}`);lines.push(`Date: ${r.date}`,'','*Measurements*');
+  r.inputs.forEach(x=>lines.push(`• ${x[0]}: ${x[1]}`));lines.push('','*Quantities*');
+  r.results.forEach(x=>lines.push(`• ${x[0]}: ${x[2]?'*'+x[1]+'*':x[1]}`));
+  lines.push('','Quantities are counted from the actual panel/sheet layout and rounded up to whole pieces.');
+  if(br.phone||br.address)lines.push('',`${br.name||''}${br.phone?' · '+br.phone:''}`,br.address||'');
+  return lines.filter((x,i,a)=>!(x===''&&a[i-1]==='')).join('\n').trim();}
+/* ---------- image card (canvas) ---------- */
+async function calcImage(r){
+  const W=1080,P=56,s=State.settings||{},br=(s.branches||[]).find(b=>b.id===s.activeBranchId)||(s.branches||[])[0]||{};
+  const c=document.createElement('canvas'),g=c.getContext('2d');const font=(w,sz)=>`${w} ${sz}px "Segoe UI",Roboto,Arial,sans-serif`;
+  const wrap=(text,maxW,f)=>{g.font=f;const out=[];for(const para of String(text).split('\n')){let line='';for(const word of para.split(' ')){const t=line?line+' '+word:word;if(g.measureText(t).width>maxW&&line){out.push(line);line=word;}else line=t;}out.push(line);}return out;};
+  // layout pass: list of [type, text...]
+  const blocks=[];const add=(t,a,b,strong)=>blocks.push({t,a,b,strong});
+  add('title',r.title);if(r.project)add('sub','Project: '+r.project);add('sub','Date: '+r.date);
+  add('h','Measurements');r.inputs.forEach(x=>add('row',x[0],x[1]));
+  add('h','Results');r.results.forEach(x=>add('row',x[0],x[1],!!x[2]));
+  add('h','How it was calculated');r.steps.forEach((x,i)=>add('step',`${i+1}. ${x.trim()}`));
+  let y=200;const lay=[];
+  for(const b of blocks){
+    if(b.t==='title'){const ls=wrap(b.a,W-2*P,font(800,44));lay.push({...b,ls,y});y+=ls.length*54+6;}
+    else if(b.t==='sub'){lay.push({...b,y});y+=38;}
+    else if(b.t==='h'){y+=26;lay.push({...b,y});y+=50;}
+    else if(b.t==='row'){const ls=wrap(b.b,W/2-P,font(b.strong?800:600,b.strong?32:28));const h=Math.max(1,ls.length)*(b.strong?40:36)+(b.strong?20:10);lay.push({...b,ls,y,h});y+=h;}
+    else if(b.t==='step'){const ls=wrap(b.a,W-2*P,font(400,25));lay.push({...b,ls,y});y+=ls.length*33+6;}
+  }
+  const H=y+150;c.width=W;c.height=H;
+  g.fillStyle='#f5f1ea';g.fillRect(0,0,W,H);
+  g.fillStyle='#1e3157';g.fillRect(0,0,W,160);g.fillStyle='#e07d1c';g.fillRect(0,160,W,8);
+  try{const img=new Image();img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(logoSVG(104));await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;setTimeout(rej,1500);});g.drawImage(img,P-6,28,104,104);}catch(e){}
+  g.fillStyle='#fff';g.font=font(800,40);g.fillText(s.shopName||'Pehlwania Door Max',P+120,78);
+  g.fillStyle='#f39423';g.font=font(700,22);g.fillText((s.tagline||'Strong Doors, Strong Homes').toUpperCase()+'  ·  MATERIAL ESTIMATE',P+120,116);
+  g.fillStyle='#ffffff';g.fillRect(P-20,184,W-2*P+40,H-184-110);
+  for(const b of lay){
+    if(b.t==='title'){g.fillStyle='#1e3157';g.font=font(800,44);b.ls.forEach((l,i)=>g.fillText(l,P,b.y+44+i*54));}
+    else if(b.t==='sub'){g.fillStyle='#555';g.font=font(600,26);g.fillText(b.a,P,b.y+30);}
+    else if(b.t==='h'){g.fillStyle='#e07d1c';g.font=font(800,26);g.fillText(b.a.toUpperCase(),P,b.y+30);g.fillStyle='#e5ded2';g.fillRect(P,b.y+42,W-2*P,2);}
+    else if(b.t==='row'){if(b.strong){g.fillStyle='#fef2e0';g.fillRect(P-10,b.y,W-2*P+20,b.h-6);}
+      g.fillStyle='#8a8578';g.font=font(600,26);wrap(b.a,W/2-P,font(600,26)).slice(0,2).forEach((l,i)=>g.fillText(l,P,b.y+(b.strong?38:30)+i*32));
+      g.fillStyle=b.strong?'#1f8a4c':'#232a36';g.font=font(b.strong?800:600,b.strong?32:28);b.ls.forEach((l,i)=>{const w=g.measureText(l).width;g.fillText(l,W-P-w,b.y+(b.strong?40:30)+i*(b.strong?40:36));});}
+    else if(b.t==='step'){g.fillStyle='#333';g.font=font(400,25);b.ls.forEach((l,i)=>g.fillText(l,P,b.y+26+i*33));}
+  }
+  g.fillStyle='#1e3157';g.fillRect(0,H-96,W,96);g.fillStyle='#fff';g.font=font(600,24);
+  g.fillText([br.name,br.phone].filter(Boolean).join('  ·  ')||'Pehlwania Door Max',P,H-56);
+  g.fillStyle='#c7d2e6';g.font=font(400,20);g.fillText((br.address||'')+'  —  quantities rounded up to whole pieces',P,H-24);
+  return c.toDataURL('image/png');}
+function calcFileName(r){return ('Pehlwania-'+r.kind+'-'+(r.project||'estimate')+'-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')).replace(/[^a-z0-9\-]+/gi,'_')+'.png';}
+Views.calcSave=async function(){const r=Views._calcRes;if(!r){toast('Press Calculate first');return;}
+  try{const png=await calcImage(r);const name=calcFileName(r);
+    if(IS_NATIVE){const res=await PDMNative.call('media.saveImage',{base64:png.split(',')[1],fileName:name});toast('✔ Saved to Gallery'+(res&&res.album?` (${res.album})`:''));}
+    else{const a=document.createElement('a');a.href=png;a.download=name;document.body.appendChild(a);a.click();a.remove();toast('✔ Image saved to your Downloads folder');}
+  }catch(e){toast('⚠ Could not save: '+e.message);}};
+Views.calcShare=async function(){const r=Views._calcRes;if(!r){toast('Press Calculate first');return;}
+  const text=calcShareText(r);const phone=waPhone(r.phone);
+  try{if(IS_NATIVE){const png=await calcImage(r);const res=await PDMNative.call('share.whatsapp',{text,base64:png.split(',')[1],fileName:calcFileName(r),phone});
+      if(res&&res.via==='chooser')toast('WhatsApp not found — choose an app to share with');}
+    else openExternal('https://wa.me/'+(phone||'')+'?text='+encodeURIComponent(text));
+  }catch(e){toast('⚠ Could not share: '+e.message);}};
+Views.calcToQuote=function(){const r=Views._calcRes;if(!r)return;
+  const items=r.materials.filter(m=>m.qty>0).map((m,i)=>{const pname=CALC_PRODUCTS[m.key]||m.name;const p=State.products.find(x=>x.name.toLowerCase()===pname.toLowerCase());
+    const it={id:uid(),desc:p?p.name:pname,productId:p?p.id:undefined,unit:p?p.unit:m.unit,qty:m.qty,rate:p&&p.price>0?p.price:0,basis:'piece',mu:'in',width:'',height:''};
+    /* products priced per sq ft: price each piece by its real size (W in × L in ÷ 144) */
+    if(p&&(p.defaultBasis==='sqft'||p.unit==='sq ft')){it.basis='sqft';it.width=m.pieceWIn;it.height=m.pieceLIn;}
+    return it;});
+  if(!items.length){toast('Nothing to add');return;}
+  Nav.go('quotes');
+  Views.sales({type:'quote',date:todayISO(),branchId:activeBranch(),items,discount:0,taxPct:0,payments:[],customerId:'',customerName:r.project||'',customerPhone:r.phone||'',
+    note:`From calculator: ${r.title}; ${r.inputs[0]?r.inputs.map(x=>x[1]).slice(0,2).join(' / '):''}`.slice(0,200)});
+  $('#pageTitle').textContent='New Quotation';toast('Quotation lines added — check the rates and save');};
+
+/* =========================================================
    BACKUP & RESTORE  (format v3, also reads the original v2 files)
    ---------------------------------------------------------
    v3 file = {
@@ -1514,7 +1695,7 @@ const Print=(()=>{function doc(id){
    The payload is kept as exact text so its SHA-256 checksum is identical on
    Android and desktop. A PDF bill is NOT a backup.
    ========================================================= */
-const BACKUP_FORMAT='pehlwania-pos-backup',BACKUP_VERSION=3,APP_VERSION='3.0.0';
+const BACKUP_FORMAT='pehlwania-pos-backup',BACKUP_VERSION=3,APP_VERSION='3.1.0';
 /* small pure-JS SHA-256 (works on file:// pages and in tests) */
 function sha256Hex(str){
   const bytes=new TextEncoder().encode(str);const K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];

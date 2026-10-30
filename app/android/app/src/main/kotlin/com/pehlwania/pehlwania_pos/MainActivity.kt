@@ -26,6 +26,14 @@ import java.util.concurrent.Executors
 class MainActivity : FlutterFragmentActivity() {
     private var pending: MethodChannel.Result? = null
     private val io = Executors.newSingleThreadExecutor()
+    private val mediaShare = MediaShare(this)
+    private val storagePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        mediaShare.onPermissionResult(granted)
+    }
+
+    init {
+        mediaShare.permissionLauncher = storagePermission
+    }
 
     // must be registered before the activity is started
     private val consentLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { res ->
@@ -67,6 +75,16 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 }
                 "signingInfo" -> result.success(mapOf("packageName" to packageName, "sha1" to signingSha1()))
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "pdm/media").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveImage" -> mediaShare.saveImage(
+                    call.argument<String>("base64") ?: "", call.argument<String>("fileName") ?: "estimate.png", result)
+                "share" -> mediaShare.share(
+                    call.argument<String>("text") ?: "", call.argument<String>("base64"),
+                    call.argument<String>("fileName"), call.argument<String>("phone"), result)
                 else -> result.notImplemented()
             }
         }
